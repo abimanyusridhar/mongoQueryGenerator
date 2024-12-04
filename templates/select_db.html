@@ -151,16 +151,16 @@
 </head>
 <body>
     <h2>Select a Database</h2>
-    <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+    <form id="dbForm" method="POST" enctype="multipart/form-data">
         <!-- MongoDB Configuration -->
         <div class="db-options">
             <label>
                 <input type="radio" name="db_type" value="mongodb" id="mongodb" required>
                 <strong>Connect to MongoDB</strong>
             </label>
-            <label>Host: <input type="text" name="host" placeholder="e.g., localhost" id="host" disabled aria-required="true"></label>
-            <label>Port: <input type="number" name="port" placeholder="e.g., 27017" id="port" disabled min="1" max="65535" aria-required="true"></label>
-            <label>Database Name: <input type="text" name="database" placeholder="e.g., my_database" id="database" disabled required></label>
+            <label>Host: <input type="text" name="host" placeholder="e.g., localhost" id="host" disabled></label>
+            <label>Port: <input type="number" name="port" placeholder="e.g., 27017" id="port" disabled min="1" max="65535"></label>
+            <label>Database Name: <input type="text" name="database" placeholder="e.g., my_database" id="database" disabled></label>
         </div>
 
         <hr>
@@ -171,7 +171,7 @@
                 <input type="radio" name="db_type" value="json_or_js" id="json_or_js" required>
                 <strong>Upload JSON or JS File</strong>
             </label>
-            <label>Choose File: <input type="file" name="db_file" accept=".json, .js" id="db_file" required disabled></label>
+            <label>Choose File: <input type="file" name="db_file" accept=".json, .js" id="db_file" disabled></label>
         </div>
 
         <button type="submit">Connect</button>
@@ -190,42 +190,44 @@
         const databaseInput = document.getElementById('database');
         const dbFileInput = document.getElementById('db_file');
 
-        // Function to enable/disable form fields based on the selected database type
-        mongodbRadio.addEventListener('change', function() {
+        function toggleInputs() {
             if (mongodbRadio.checked) {
                 hostInput.disabled = false;
                 portInput.disabled = false;
                 databaseInput.disabled = false;
                 dbFileInput.disabled = true;
-            }
-        });
-
-        jsonOrJsRadio.addEventListener('change', function() {
-            if (jsonOrJsRadio.checked) {
+            } else if (jsonOrJsRadio.checked) {
                 hostInput.disabled = true;
                 portInput.disabled = true;
                 databaseInput.disabled = true;
                 dbFileInput.disabled = false;
             }
-        });
-
-        // Validation function
-        function validateForm() {
-            if (mongodbRadio.checked) {
-                if (hostInput.value.trim() === "" ||
-                    portInput.value.trim() === "" ||
-                    databaseInput.value.trim() === "") {
-                    alert("Please fill out all MongoDB connection details.");
-                    return false;
-                }
-            } else if (jsonOrJsRadio.checked) {
-                if (!dbFileInput.files.length) {
-                    alert("Please upload a JSON or JS file.");
-                    return false;
-                }
-            }
-            return true;
         }
+
+        mongodbRadio.addEventListener('change', toggleInputs);
+        jsonOrJsRadio.addEventListener('change', toggleInputs);
+
+        document.getElementById('dbForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+
+            try {
+                const response = await fetch('/select_db', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    alert("Database connected successfully!");
+                    window.location.href = "/schema"; // Redirect to schema page
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.message || "Failed to connect to database."}`);
+                }
+            } catch (err) {
+                alert(`An unexpected error occurred: ${err.message}`);
+            }
+        });
     </script>
 </body>
 </html>

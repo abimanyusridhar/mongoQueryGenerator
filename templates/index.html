@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataSpeak Home</title>
+    <title>DataSpeak: Simplifying NoSQL with NLP</title>
     <style>
         /* General Reset */
         * {
@@ -35,27 +35,6 @@
             overflow: hidden;
         }
 
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: -10%;
-            left: -10%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255, 204, 0, 0.2), transparent);
-            animation: background-spin 15s linear infinite;
-            z-index: 0;
-        }
-
-        @keyframes background-spin {
-            from {
-                transform: rotate(0deg);
-            }
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
         .hero-section .hero-content {
             position: relative;
             max-width: 900px;
@@ -80,26 +59,6 @@
             animation: fadeIn 2s ease-in-out;
         }
 
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
         .btn-primary {
             display: inline-block;
             padding: 0.75rem 1.5rem;
@@ -117,56 +76,43 @@
             transform: scale(1.1);
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Container Section */
-        .container {
-            max-width: 900px;
-            margin: 3rem auto;
-            padding: 2rem;
+        /* Features Section */
+        .features-section {
+            padding: 3rem 1rem;
             background: #ffffff;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            animation: slideIn 1.5s ease-in-out;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(-100px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .container h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
             text-align: center;
-            border-bottom: 2px solid #4e73df;
-            padding-bottom: 0.5rem;
-            display: inline-block;
-            color: #2b3e50;
-            animation: fadeIn 2s ease-in-out;
         }
 
-        .container p {
-            font-size: 1.1rem;
+        .features-section h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #2b3e50;
+        }
+
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .feature {
+            background: #f7f7f7;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .feature h3 {
+            font-size: 1.5rem;
+            color: #4e73df;
+            margin-bottom: 1rem;
+        }
+
+        .feature p {
+            font-size: 1rem;
             color: #555;
-            margin-bottom: 1.5rem;
             line-height: 1.6;
-            animation: fadeIn 2.5s ease-in-out;
         }
 
         /* Footer Section */
@@ -176,37 +122,11 @@
             background: #2c3e50;
             color: white;
             margin-top: 3rem;
-            position: relative;
-            overflow: hidden;
         }
 
         footer p {
             margin: 0;
             font-size: 1rem;
-            animation: fadeInUp 1.5s ease-in-out;
-        }
-
-        footer::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            width: 150%;
-            height: 50px;
-            background: radial-gradient(circle, rgba(255, 204, 0, 0.2), transparent);
-            transform: translateX(-50%);
-            animation: ripple 5s infinite;
-        }
-
-        @keyframes ripple {
-            0%, 100% {
-                transform: translateX(-50%) scale(1);
-                opacity: 0.3;
-            }
-            50% {
-                transform: translateX(-50%) scale(1.2);
-                opacity: 0.5;
-            }
         }
     </style>
 </head>
@@ -216,19 +136,41 @@
         <div class="hero-content">
             <h1>Welcome to <span>DataSpeak</span></h1>
             <p>
-                Harness the power of NoSQL and Natural Language Processing (NLP) to seamlessly interact with your MongoDB databases.
-                Easily connect, explore collections, and run dynamic queries using simple natural language commands.
+                The future of database interaction is here. DataSpeak empowers you to explore, query, and manage your NoSQL databases effortlessly using natural language commands.
             </p>
             <a class="btn-primary" href="{{ url_for('select_db') }}">Get Started</a>
         </div>
     </div>
 
-    <!-- Container Section -->
-    <div class="container">
-        <h2>What is DataSpeak?</h2>
-        <p>
-            <strong>DataSpeak</strong> is an NLP-driven system designed to interact with NoSQL databases like MongoDB. It deciphers your database collections, extracts schema-like insights, and translates natural language queries into efficient MongoDB queries, enabling intuitive data exploration and management.
-        </p>
+    <!-- Features Section -->
+    <div class="features-section">
+        <h2>Why Choose DataSpeak?</h2>
+        <div class="features-list">
+            <div class="feature">
+                <h3>Natural Language Queries</h3>
+                <p>
+                    Forget writing complex queries. With DataSpeak, simply describe what you need in plain English, and let us do the rest.
+                </p>
+            </div>
+            <div class="feature">
+                <h3>Intuitive Schema Exploration</h3>
+                <p>
+                    Automatically analyze and visualize your MongoDB collections to understand the underlying structure with ease.
+                </p>
+            </div>
+            <div class="feature">
+                <h3>Seamless Integration</h3>
+                <p>
+                    Connect to your MongoDB databases in just a few clicks and get started instantly—no additional setup required.
+                </p>
+            </div>
+            <div class="feature">
+                <h3>Optimized Query Generation</h3>
+                <p>
+                    Our NLP engine translates your commands into efficient MongoDB queries, ensuring maximum performance and accuracy.
+                </p>
+            </div>
+        </div>
     </div>
 
     <!-- Footer Section -->

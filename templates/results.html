@@ -13,8 +13,8 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
+            font-family: 'Arial', sans-serif;
+            background-color: #eef2f7;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -23,96 +23,156 @@
         }
 
         .container {
-            width: 80%;
+            width: 90%;
             max-width: 1000px;
-            background-color: #fff;
+            background-color: #ffffff;
             padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
             text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
         }
 
         h1 {
-            color: #333;
-            font-size: 28px;
-            margin-bottom: 30px;
+            color: #333333;
+            font-size: 30px;
+            margin-bottom: 20px;
+        }
+
+        h2, h3 {
+            color: #444444;
+            margin-top: 15px;
+        }
+
+        pre {
+            background-color: #f4f4f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: left;
+            word-wrap: break-word;
+            overflow-x: auto;
+            white-space: pre-wrap;
         }
 
         .query-result-table {
             width: 100%;
-            margin-top: 30px;
+            margin-top: 20px;
             border-collapse: collapse;
-            background-color: #fff;
         }
 
         .query-result-table th, .query-result-table td {
-            padding: 12px;
+            padding: 12px 15px;
             border: 1px solid #ddd;
             text-align: left;
         }
 
         .query-result-table th {
-            background-color: #f4f4f9;
+            background-color: #3a6ea5;
+            color: white;
+            font-weight: bold;
         }
 
         .query-result-table td {
             background-color: #f9f9f9;
         }
 
+        .query-result-table tbody tr:nth-child(even) td {
+            background-color: #f1f1f1;
+        }
+
+        .query-result-table tbody tr:hover td {
+            background-color: #d8e8f7;
+        }
+
+        .no-results {
+            margin-top: 20px;
+            font-size: 16px;
+            color: #666;
+        }
+
         .back-btn {
             display: inline-block;
             background-color: #3a6ea5;
             color: white;
-            padding: 10px 20px;
+            padding: 12px 25px;
             text-decoration: none;
             border-radius: 6px;
             margin-top: 30px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
         }
 
         .back-btn:hover {
             background-color: #2a4d70;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .query-result-table th, .query-result-table td {
+                padding: 10px;
+            }
         }
     </style>
 </head>
 <body>
-
-    <div class="container">
+    <main class="container" role="main">
         <h1>Query Results</h1>
 
         <!-- Displaying the user's original query -->
-        <h2>Your Query: {{ query }}</h2>
+        <section aria-labelledby="query-heading">
+            <h2 id="query-heading">Your Query:</h2>
+            <pre>{{ query || "No query provided." }}</pre>
+        </section>
 
         <!-- Displaying the generated MongoDB query -->
-        <h3>Generated MongoDB Query:</h3>
-        <pre>{{ generated_query }}</pre>
+        <section aria-labelledby="generated-query-heading">
+            <h3 id="generated-query-heading">Generated MongoDB Query:</h3>
+            <pre>{{ generated_query || "No MongoDB query generated." }}</pre>
+        </section>
 
         <!-- Displaying the query results in a table -->
-        {% if rows %}
-        <table class="query-result-table">
-            <thead>
-                <tr>
-                    {% for column in columns %}
-                    <th>{{ column }}</th>
+        {% if rows and rows.length > 0 %}
+        <section aria-labelledby="results-heading">
+            <h3 id="results-heading">Query Results:</h3>
+            <table class="query-result-table">
+                <thead>
+                    <tr>
+                        {% for column in columns %}
+                        <th>{{ column }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        {% for cell in row %}
+                        <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
                     {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in rows %}
-                <tr>
-                    {% for cell in row %}
-                    <td>{{ cell }}</td>
-                    {% endfor %}
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </section>
         {% else %}
-        <p>No results found for your query.</p>
+        <p class="no-results">No results found for your query.</p>
         {% endif %}
 
         <!-- Back Button -->
         <a href="/nlp_query" class="back-btn">Back to NLP Query</a>
-    </div>
-
+    </main>
 </body>
 </html>

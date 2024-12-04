@@ -47,7 +47,6 @@
             width: 100%;
             max-width: 1200px;
             padding: 1.5rem;
-            box-sizing: border-box;
         }
 
         /* Section Titles */
@@ -72,7 +71,6 @@
             animation: slideUp 1s ease-out;
         }
 
-        /* Card Layouts */
         .schema-list, .model-list {
             display: flex;
             flex-wrap: wrap;
@@ -187,6 +185,18 @@
         }
     </style>
 </head>
+<script>
+    // Prevent form resubmission on page reload
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+
+    // Scroll-to-Top Functionality
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+</script>
+
 <body>
     <!-- Header Section -->
     <header class="header">
@@ -201,12 +211,12 @@
             {% if collections %}
             <div class="schema-list">
                 {% for collection, details in collections.items() %}
-                <div class="table-card">
+                <div class="table-card" aria-label="Schema details for {{ collection }}">
                     <h3>Collection: {{ collection }}</h3>
                     <ul>
-                        <li><strong>Fields:</strong> {{ details['fields'] | join(', ') }}</li>
+                        <li><strong>Fields:</strong> {{ details.fields | join(', ') }}</li>
                         <li><strong>Field Types:</strong>
-                            {% for field, field_type in details['field_types'].items() %}
+                            {% for field, field_type in details.field_types.items() %}
                             <br><strong>{{ field }}:</strong> <em>{{ field_type }}</em>
                             {% endfor %}
                         </li>
@@ -225,11 +235,11 @@
             {% if relationships %}
             <div class="model-list">
                 {% for model, details in relationships.items() %}
-                <div class="model-card">
+                <div class="model-card" aria-label="Relationship details for {{ model }}">
                     <h3>Model: {{ model }}</h3>
                     <ul>
                         {% for relation in details %}
-                        <li><strong>{{ relation['field'] }}</strong> ↔ <em>{{ relation['from_collection'] }}</em></li>
+                        <li><strong>{{ relation.field }}</strong> ↔ <em>{{ relation.from_collection }}</em></li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -243,6 +253,7 @@
         <!-- Navigation Buttons -->
         <a href="/" class="btn-primary">Back to Home</a>
         <a href="{{ url_for('nlp_query') }}" class="btn-primary">Run NLP Query</a>
+        <button onclick="scrollToTop()" class="btn-primary">Scroll to Top</button>
     </main>
 
     <!-- Footer -->

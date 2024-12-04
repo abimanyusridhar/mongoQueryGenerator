@@ -9,7 +9,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f9;
+            background-color: #f0f0f5;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -17,148 +17,201 @@
         }
 
         .container {
-            width: 80%;
+            width: 90%;
             max-width: 600px;
             background-color: #fff;
             padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
             text-align: center;
-            transition: all 0.3s ease-in-out;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .container:hover {
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            transform: scale(1.02);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
         }
 
         h1 {
-            color: #333;
-            font-size: 24px;
+            color: #444;
+            font-size: 26px;
             margin-bottom: 20px;
         }
 
         .input-field {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             margin: 20px 0;
-            border: 2px solid #ddd;
+            border: 1px solid #ccc;
             border-radius: 5px;
             font-size: 16px;
-            background-color: #fafafa;
-            transition: border-color 0.3s ease;
+            background-color: #f9f9f9;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .input-field:focus {
-            border-color: #4CAF50;
+            border-color: #5cb85c;
+            box-shadow: 0 0 5px rgba(92, 184, 92, 0.5);
             outline: none;
         }
 
         .submit-btn {
-            background-color: #4CAF50;
+            background-color: #5cb85c;
             color: white;
-            padding: 12px 20px;
+            padding: 14px 20px;
             border: none;
             border-radius: 5px;
             font-size: 18px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.3s ease;
         }
 
         .submit-btn:hover {
-            background-color: #45a049;
+            background-color: #4cae4c;
+            transform: translateY(-2px);
+        }
+
+        .message {
+            font-size: 14px;
+            margin-top: 20px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .error-message {
             color: red;
-            margin-top: 20px;
-            font-size: 14px;
         }
 
         .success-message {
             color: green;
-            margin-top: 20px;
-            font-size: 14px;
         }
 
         .generated-query {
-            background-color: #f1f1f1;
+            background-color: #f8f8f8;
             padding: 20px;
-            border-radius: 5px;
+            border-radius: 8px;
             border: 1px solid #ddd;
             margin-top: 20px;
             word-wrap: break-word;
             text-align: left;
             font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            display: none;
         }
 
-        /* Responsive Design */
+        .loading-spinner {
+            display: none;
+            margin: 20px auto;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #5cb85c;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
         @media (max-width: 768px) {
             .container {
-                width: 90%;
+                width: 95%;
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="container" role="form">
         <h1>Enter Your Natural Language Query</h1>
         <form id="queryForm">
-            <input type="text" id="nlpQuery" class="input-field" placeholder="Type your query here" required>
+            <input 
+                type="text" 
+                id="nlpQuery" 
+                class="input-field" 
+                placeholder="Type your query here" 
+                aria-label="Natural Language Query" 
+                required>
             <button type="submit" class="submit-btn">Generate Query</button>
         </form>
-        <div id="errorMessage" class="error-message"></div>
-        <div id="successMessage" class="success-message"></div>
-        <div id="generatedQuery" class="generated-query" style="display:none;"></div> <!-- To display generated query -->
+        <div id="loadingSpinner" class="loading-spinner" aria-hidden="true"></div>
+        <div id="errorMessage" class="message error-message" aria-live="polite"></div>
+        <div id="successMessage" class="message success-message" aria-live="polite"></div>
+        <div id="generatedQuery" class="generated-query"></div>
     </div>
 
     <script>
-        document.getElementById('queryForm').addEventListener('submit', function(event) {
+        const form = document.getElementById('queryForm');
+        const nlpQuery = document.getElementById('nlpQuery');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const generatedQuery = document.getElementById('generatedQuery');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        form.addEventListener('submit', async (event) => {
             event.preventDefault();
 
-            const query = document.getElementById('nlpQuery').value;
-            const errorMessageElement = document.getElementById('errorMessage');
-            const successMessageElement = document.getElementById('successMessage');
-            const generatedQueryElement = document.getElementById('generatedQuery');
+            // Reset messages
+            resetMessages();
+            const query = nlpQuery.value.trim();
 
-            // Clear previous messages and the generated query display
-            errorMessageElement.textContent = "";
-            successMessageElement.textContent = "";
-            generatedQueryElement.style.display = "none";
-            generatedQueryElement.textContent = "";
-
-            // Check if input is empty
-            if (query.trim() === "") {
-                errorMessageElement.textContent = "Please enter a query!";
-                successMessageElement.textContent = "";
+            // Input validation
+            if (!validateQuery(query)) {
+                displayMessage(errorMessage, "Please enter a valid query with at least 5 characters.");
                 return;
             }
 
-            // Send the query to the server (AJAX request)
-            fetch('/generate_query', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ query: query })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    successMessageElement.textContent = "Query generated successfully!";
-                    // Display the generated query
-                    generatedQueryElement.style.display = "block";
-                    generatedQueryElement.textContent = JSON.stringify(data.generated_query, null, 2);
-                    // Optionally, redirect or display a success message here
+            // Show loading spinner
+            loadingSpinner.style.display = 'block';
+
+            try {
+                // Send query to the server
+                const response = await fetch('/generate_query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ query }),
+                });
+
+                const data = await response.json();
+                loadingSpinner.style.display = 'none';
+
+                if (response.ok && data.success) {
+                    displayMessage(successMessage, "Query generated successfully!");
+                    generatedQuery.style.display = 'block';
+                    generatedQuery.textContent = JSON.stringify(data.generated_query, null, 2);
                 } else {
-                    errorMessageElement.textContent = "Failed to generate query. Please try again.";
+                    displayMessage(errorMessage, data.message || "Failed to generate query. Please try again.");
                 }
-            })
-            .catch(error => {
-                errorMessageElement.textContent = "An error occurred while processing your request. Please try again later.";
+            } catch (error) {
+                loadingSpinner.style.display = 'none';
+                displayMessage(errorMessage, "An error occurred. Please try again later.");
                 console.error("Error:", error);
-            });
+            }
         });
+
+        function validateQuery(query) {
+            return query.length >= 5 && /^[a-zA-Z0-9\s,.'-]+$/.test(query);
+        }
+
+        function resetMessages() {
+            errorMessage.style.opacity = 0;
+            successMessage.style.opacity = 0;
+            generatedQuery.style.display = 'none';
+            generatedQuery.textContent = '';
+        }
+
+        function displayMessage(element, message) {
+            element.textContent = message;
+            element.style.opacity = 1;
+        }
     </script>
 </body>
 </html>
