@@ -1,149 +1,125 @@
 import re
 import json
+import logging
+from typing import Optional, Dict, Any
 from transformers import pipeline
 from utils.db_connection import get_connection
 
-# Load pre-trained NLP model (e.g., fine-tuned T5)
-nlp_model = pipeline('text2text-generation', model="t5-small")
+# Initialize logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
-# Define regular expression patterns for common and advanced queries
+# Load pre-trained NLP model
+nlp_model = pipeline("text2text-generation", model="t5-large")
+
+# Regex patterns for natural language query recognition
 RE_PATTERNS = {
-    "greater_than": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? greater than (\d+)"),
-    "less_than": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? less than (\d+)"),
-    "equals": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? (\w+)"),
-    "contains": re.compile(r"(find|show|get) all (\w+) containing (\w+)"),
-    "range_query": re.compile(r"(find|show|get) all (\w+) where (\w+) is between (\d+) and (\d+)"),
-    "not_equals": re.compile(r"(find|show|get) all (\w+) where (\w+) (is not|isn't|are not|aren't) (\w+)"),
-    "field_in_list": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? in \[(.*?)\]"),
-    "starts_with": re.compile(r"(find|show|get) all (\w+) where (\w+) starts with (\w+)"),
-    "ends_with": re.compile(r"(find|show|get) all (\w+) where (\w+) ends with (\w+)"),
+    "greater_than": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? greater than (\d+)", re.IGNORECASE),
+    "less_than": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? less than (\d+)", re.IGNORECASE),
+    "equals": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? (\w+)", re.IGNORECASE),
+    "contains": re.compile(r"(find|show|get) all (\w+) containing (\w+)", re.IGNORECASE),
+    "range_query": re.compile(r"(find|show|get) all (\w+) where (\w+) is between (\d+) and (\d+)", re.IGNORECASE),
+    "not_equals": re.compile(r"(find|show|get) all (\w+) where (\w+) (is not|isn't|are not|aren't) (\w+)", re.IGNORECASE),
+    "field_in_list": re.compile(r"(find|show|get) all (\w+) where (\w+) (is|are)? in \[(.*?)\]", re.IGNORECASE),
+    "starts_with": re.compile(r"(find|show|get) all (\w+) where (\w+) starts with (\w+)", re.IGNORECASE),
+    "ends_with": re.compile(r"(find|show|get) all (\w+) where (\w+) ends with (\w+)", re.IGNORECASE),
 }
 
-def extract_schema():
-    """
-    Extracts the schema from the current MongoDB database.
+# Cached schema
+_cached_schema: Optional[Dict[str, Any]] = None
 
-    Returns:
-        dict: Database schema, including collections and their fields.
-    """
+
+def extract_schema() -> Dict[str, Any]:
+    """Extract schema from MongoDB."""
+    global _cached_schema
+    if _cached_schema:
+        return _cached_schema
+
     client = get_connection()
     if not client:
-        raise Exception("No active MongoDB connection.")
+        raise ConnectionError("Failed to connect to MongoDB.")
 
-    db = client.get_default_database()
     schema = {}
+    try:
+        db = client.get_default_database()
+        for collection in db.list_collection_names():
+            sample_doc = db[collection].find_one() or {}
+            schema[collection] = {
+                "fields": list(sample_doc.keys()),
+                "field_types": {key: type(value).__name__ for key, value in sample_doc.items()},
+            }
+        _cached_schema = schema
+        logging.info("Schema successfully extracted and cached.")
+        return schema
+    except Exception as e:
+        logging.error(f"Error extracting schema: {e}")
+        raise RuntimeError("Error while extracting schema.")
 
-    for collection in db.list_collection_names():
-        sample_doc = db[collection].find_one() or {}
-        schema[collection] = {"fields": list(sample_doc.keys())}
 
-    return schema
+def build_filter(query_type: str, field: str, value: str) -> Dict[str, Any]:
+    """Construct MongoDB filter."""
+    filter_map = {
+        "greater_than": lambda v: {field: {"$gt": int(v)}},
+        "less_than": lambda v: {field: {"$lt": int(v)}},
+        "equals": lambda v: {field: v},
+        "contains": lambda v: {field: {"$regex": v, "$options": "i"}},
+        "range_query": lambda v: {
+            field: {"$gte": int(v.split(",")[0]), "$lte": int(v.split(",")[1])}
+        },
+        "not_equals": lambda v: {field: {"$ne": v}},
+        "field_in_list": lambda v: {field: {"$in": [i.strip() for i in v.split(",")]}},
+        "starts_with": lambda v: {field: {"$regex": f"^{v}", "$options": "i"}},
+        "ends_with": lambda v: {field: {"$regex": f"{v}$", "$options": "i"}},
+    }
+    if query_type not in filter_map:
+        raise ValueError(f"Unsupported query type: {query_type}")
+    return filter_map[query_type](value)
 
-def generate_query_from_pattern(nl_query, schema):
-    """
-    Generates MongoDB query using predefined regular expressions for common and advanced query patterns.
 
-    Args:
-        nl_query (str): The natural language query.
-        schema (dict): The database schema.
-
-    Returns:
-        dict: MongoDB query if a pattern match is found, None otherwise.
-    """
+def generate_query_from_pattern(nl_query: str, schema: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Generate query using regex patterns."""
     for query_type, pattern in RE_PATTERNS.items():
-        match = pattern.search(nl_query.lower())
+        match = pattern.search(nl_query)
         if match:
-            collection = match.group(2)
+            collection, field = match.group(2), match.group(3)
             if collection not in schema:
-                raise ValueError(f"Collection '{collection}' not found in the database.")
-
-            field = match.group(3)
-            if field not in schema[collection]['fields']:
+                raise ValueError(f"Collection '{collection}' not found in schema.")
+            if field not in schema[collection]["fields"]:
                 raise ValueError(f"Field '{field}' not found in collection '{collection}'.")
-
-            if query_type == "greater_than":
-                return {"collection": collection, "filter": {field: {"$gt": int(match.group(5))}}}
-            elif query_type == "less_than":
-                return {"collection": collection, "filter": {field: {"$lt": int(match.group(5))}}}
-            elif query_type == "equals":
-                return {"collection": collection, "filter": {field: match.group(5)}}
-            elif query_type == "contains":
-                return {"collection": collection, "filter": {field: {"$regex": match.group(3), "$options": "i"}}}
-            elif query_type == "range_query":
-                lower = int(match.group(4))
-                upper = int(match.group(5))
-                return {"collection": collection, "filter": {field: {"$gte": lower, "$lte": upper}}}
-            elif query_type == "not_equals":
-                return {"collection": collection, "filter": {field: {"$ne": match.group(5)}}}
-            elif query_type == "field_in_list":
-                values = [v.strip() for v in match.group(5).split(',')]
-                return {"collection": collection, "filter": {field: {"$in": values}}}
-            elif query_type == "starts_with":
-                return {"collection": collection, "filter": {field: {"$regex": f"^{match.group(4)}", "$options": "i"}}}
-            elif query_type == "ends_with":
-                return {"collection": collection, "filter": {field: {"$regex": f"{match.group(4)}$", "$options": "i"}}}
-    
+            value = match.group(5) if query_type != "field_in_list" else match.group(6)
+            return {"collection": collection, "filter": build_filter(query_type, field, value)}
     return None
 
-def generate_query_with_nlp(nl_query, schema=None):
-    """
-    Uses an NLP model to generate a MongoDB query for more complex or ambiguous natural language queries.
 
-    Args:
-        nl_query (str): The natural language query.
-        schema (dict, optional): The database schema. Default is None.
-
-    Returns:
-        dict: Generated MongoDB query.
-    """
-    prompt = f"Query: {nl_query}\n\nMongoDB Query:"
-    if schema:
-        schema_context = json.dumps(schema, indent=2)
-        prompt = f"Schema:\n{schema_context}\n\n{prompt}"
-    
+def generate_query_with_nlp(nl_query: str, schema: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Generate query using the NLP model."""
+    prompt = f"Schema:\n{json.dumps(schema, indent=2)}\n\nQuery: {nl_query}\n\nMongoDB Query:"
     try:
-        result = nlp_model(prompt, max_length=150, num_return_sequences=1)
-        return json.loads(result[0]['generated_text'])
+        result = nlp_model(prompt, max_length=200, num_return_sequences=1)
+        return json.loads(result[0]["generated_text"])
     except Exception as e:
-        print(f"Error in NLP query generation: {e}")
-        return None
+        logging.error(f"NLP query generation failed: {e}")
+        raise RuntimeError("NLP query generation failed.")
 
-def generate_mongo_query(nl_query):
-    """
-    Main function for generating MongoDB queries using a hybrid approach.
 
-    Args:
-        nl_query (str): The natural language query.
-
-    Returns:
-        dict: MongoDB query if successful, None otherwise.
-    """
+def generate_mongo_query(nl_query: str) -> Optional[Dict[str, Any]]:
+    """Generate MongoDB query using regex and NLP fallback."""
     try:
         schema = extract_schema()
-
-        # Attempt RE-based query generation for simple queries
         query = generate_query_from_pattern(nl_query, schema)
         if query:
-            print("Query generated using pattern matching.")
+            logging.info("Query generated using regex patterns.")
             return query
-
-        # If no pattern match, fallback to NLP model for complex queries
-        query = generate_query_with_nlp(nl_query, schema)
-        if query:
-            print("Query generated using NLP model.")
-            return query
-
-        print("Unable to generate query from input.")
-        return None
+        logging.info("Falling back to NLP model.")
+        return generate_query_with_nlp(nl_query, schema)
     except Exception as e:
-        print(f"Error in query generation: {e}")
+        logging.error(f"Error: {e}")
         return None
+
 
 if __name__ == "__main__":
-    # Example usage
     query_input = "Find all employees where age is greater than 30"
     result = generate_mongo_query(query_input)
     if result:
-        print("Generated Query:", result)
+        logging.info(f"Generated Query: {json.dumps(result, indent=2)}")
     else:
-        print("Query generation failed.")
+        logging.error("Query generation failed.")

@@ -1,5 +1,4 @@
 from pymongo import MongoClient
-from pymongo.errors import ConnectionFailure
 import os
 import json
 
@@ -7,101 +6,111 @@ client = None  # Global MongoDB client object
 
 def connect_to_db(db_details):
     """
-    Connect to a MongoDB database or load data from an external .js MongoDB file.
-    
+    Connect to a MongoDB database or load data from an external .js or .json file.
+
     Parameters:
     db_details (dict): A dictionary containing connection details:
-                       - 'type': must be 'mongodb'
-                       - 'host': MongoDB host (default 'localhost')
-                       - 'port': MongoDB port (default 27017)
-                       - 'database': Name of the database to connect to
-                       - 'file_path': Path to an external .js MongoDB file (optional)
+                       - 'type': must be 'mongodb' or 'json'
+                       - 'host': MongoDB host (default 'localhost') (only for 'mongodb')
+                       - 'port': MongoDB port (default 27017) (only for 'mongodb')
+                       - 'database': Name of the database to connect to (only for 'mongodb')
+                       - 'file_path': Path to an external .js or .json file (only for 'json')
 
     Returns:
     bool: True if connection is successful or file is processed successfully, False otherwise.
     """
     global client
     try:
-        # Ensure we are connecting to a MongoDB database
-        if db_details.get('type') != 'mongodb':
-            raise ValueError("Unsupported database type. Only 'mongodb' is supported.")
-
-        # Establish the connection to MongoDB
-        host = db_details.get('host', 'localhost')
-        port = db_details.get('port', 27017)
-        client = MongoClient(host=host, port=port)
-        print(f"Connected to MongoDB server at {host}:{port}")
-
-        # Process an external .js file if provided in db_details
-        file_path = db_details.get('file_path')
-        if file_path:
-            if not os.path.exists(file_path) or not file_path.endswith('.js'):
-                raise ValueError("Invalid file path or file type. Only .js files are supported.")
-            
-            # If a file is provided, process it and load data into the MongoDB instance
-            process_external_file(file_path, client)
-            print(f"External database file '{file_path}' processed and imported successfully.")
+        db_type = db_details.get('type')
+        if db_type == 'mongodb':
+            return connect_to_mongodb(db_details)
+        elif db_type == 'json':
+            return process_json_file(db_details.get('file_path'))
         else:
-            # Ensure a valid database is specified
-            db_name = db_details.get('database')
-            if not db_name:
-                raise ValueError("Database name is required when connecting to MongoDB.")
-            
-            db = client[db_name]
-            # Ping the MongoDB server to verify connection
-            client.admin.command('ping')
-            print(f"Connected to MongoDB database '{db_name}' successfully.")
-        
-        return True
-    except (ConnectionFailure, ValueError) as e:
-        print(f"Connection failed: {e}")
+            raise ValueError("Unsupported database type. Please choose either 'mongodb' or 'json'.")
+    except ValueError as e:
+        print(f"Error: {e}")
         return False
     except Exception as e:
         print(f"Unexpected error occurred: {e}")
         return False
 
-def process_external_file(file_path, client):
+def connect_to_mongodb(db_details):
     """
-    Process and import data from an external .js MongoDB database file.
-    
+    Connect to a MongoDB instance.
+
     Parameters:
-    file_path (str): Path to the .js file.
-    client (MongoClient): MongoDB client object.
+    db_details (dict): MongoDB connection details.
+
+    Returns:
+    bool: True if connected successfully, False otherwise.
+    """
+    global client
+    try:
+        host = db_details.get('host', 'localhost')
+        port = db_details.get('port', 27017)
+        database = db_details.get('database')
+
+        if not database:
+            raise ValueError("Database name is required for MongoDB connection.")
+
+        client = MongoClient(host=host, port=port)
+        client.admin.command('ping')  # Ensure connection is active
+        print(f"Connected to MongoDB server at {host}:{port}")
+        print(f"Database '{database}' connection successful.")
+        return True
+    except ValueError as e:
+        print(f"MongoDB Connection Error: {e}")
+        return False
+    except Exception as e:
+        print(f"MongoDB Connection Unexpected Error: {e}")
+        return False
+
+def process_json_file(file_path):
+    """
+    Process and load data from a JSON file into a mock database.
+
+    Parameters:
+    file_path (str): Path to the .json or .js file.
+
+    Returns:
+    bool: True if processed successfully, False otherwise.
     """
     try:
-        # Open and read the content of the .js file
+        if not file_path or not os.path.exists(file_path):
+            raise ValueError("Invalid file path. File does not exist.")
+        if not (file_path.endswith('.json') or file_path.endswith('.js')):
+            raise ValueError("Unsupported file type. Only .json or .js files are allowed.")
+
         with open(file_path, 'r', encoding='utf-8') as file:
-            file_content = file.read().replace('db.', '').replace(');', '').strip()
+            data = json.load(file)
 
-            # Split and parse each collection's data based on ';' delimiter
-            collections = [line.strip() for line in file_content.split(';') if line.strip()]
-            for collection_data in collections:
-                # Extract the collection name and the data to insert
-                collection_name, json_data = collection_data.split('.insert(', 1)
-                collection_name = collection_name.strip()
-                json_data = json.loads(json_data.strip())
+            for collection_name, collection_data in data.items():
+                print(f"Loading collection '{collection_name}' with {len(collection_data)} documents.")
+                # Optional: Insert data into a real MongoDB instance
+                # Example: client['mock_db'][collection_name].insert_many(collection_data)
 
-                # Insert data into the specified MongoDB collection
-                client['external_db'][collection_name].insert_many(
-                    json_data if isinstance(json_data, list) else [json_data]
-                )
-            print(f"Data from '{file_path}' successfully imported into 'external_db' database.")
+            print(f"Data from '{file_path}' successfully loaded.")
+            return True
     except json.JSONDecodeError as e:
-        # Handle JSON parsing errors
-        raise ValueError(f"Failed to parse JSON in the external file: {e}")
+        print(f"JSON Parsing Error: {e}")
+        return False
+    except ValueError as e:
+        print(f"File Error: {e}")
+        return False
     except Exception as e:
-        # Handle unexpected errors during file processing
-        raise ValueError(f"Failed to process the external file: {e}")
+        print(f"Unexpected error while processing JSON file: {e}")
+        return False
 
 def get_connection():
     """
     Returns the active MongoDB client.
-    
+
     Returns:
     MongoClient: The MongoDB client object if connected, otherwise None.
     """
     if client:
         return client
     else:
-        print("No active MongoDB connection.")
+        print("No active MongoDB connection. Please establish a connection using `connect_to_db`.")
         return None
