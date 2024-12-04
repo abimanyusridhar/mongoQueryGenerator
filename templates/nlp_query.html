@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natural Language Query Input</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 600px;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .container:hover {
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            background-color: #fafafa;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+
+        .submit-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+
+        .error-message {
+            color: red;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .success-message {
+            color: green;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .generated-query {
+            background-color: #f1f1f1;
+            padding: 20px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            margin-top: 20px;
+            word-wrap: break-word;
+            text-align: left;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Enter Your Natural Language Query</h1>
+        <form id="queryForm">
+            <input type="text" id="nlpQuery" class="input-field" placeholder="Type your query here" required>
+            <button type="submit" class="submit-btn">Generate Query</button>
+        </form>
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+        <div id="generatedQuery" class="generated-query" style="display:none;"></div> <!-- To display generated query -->
+    </div>
+
+    <script>
+        document.getElementById('queryForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const query = document.getElementById('nlpQuery').value;
+            const errorMessageElement = document.getElementById('errorMessage');
+            const successMessageElement = document.getElementById('successMessage');
+            const generatedQueryElement = document.getElementById('generatedQuery');
+
+            // Clear previous messages and the generated query display
+            errorMessageElement.textContent = "";
+            successMessageElement.textContent = "";
+            generatedQueryElement.style.display = "none";
+            generatedQueryElement.textContent = "";
+
+            // Check if input is empty
+            if (query.trim() === "") {
+                errorMessageElement.textContent = "Please enter a query!";
+                successMessageElement.textContent = "";
+                return;
+            }
+
+            // Send the query to the server (AJAX request)
+            fetch('/generate_query', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ query: query })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    successMessageElement.textContent = "Query generated successfully!";
+                    // Display the generated query
+                    generatedQueryElement.style.display = "block";
+                    generatedQueryElement.textContent = JSON.stringify(data.generated_query, null, 2);
+                    // Optionally, redirect or display a success message here
+                } else {
+                    errorMessageElement.textContent = "Failed to generate query. Please try again.";
+                }
+            })
+            .catch(error => {
+                errorMessageElement.textContent = "An error occurred while processing your request. Please try again later.";
+                console.error("Error:", error);
+            });
+        });
+    </script>
+</body>
+</html>
