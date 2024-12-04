@@ -1,0 +1,21 @@
+# Ignore virtual environment folder
+venv/
+
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore sensitive information
+.env
+.env.*
+*.env
+
+# Ignore IDE/editor settings
+.idea/
+.vscode/
+.DS_Store  # macOS-specific system files
+
+# Ignore dependencies folder for Python (if you're using pipenv or poetry)
+Pipfile.lock
+poetry.lock
