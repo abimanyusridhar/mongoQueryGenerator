@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Results</title>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 1000px;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+
+        .query-result-table {
+            width: 100%;
+            margin-top: 30px;
+            border-collapse: collapse;
+            background-color: #fff;
+        }
+
+        .query-result-table th, .query-result-table td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        .query-result-table th {
+            background-color: #f4f4f9;
+        }
+
+        .query-result-table td {
+            background-color: #f9f9f9;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background-color: #3a6ea5;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-top: 30px;
+        }
+
+        .back-btn:hover {
+            background-color: #2a4d70;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Query Results</h1>
+
+        <!-- Displaying the user's original query -->
+        <h2>Your Query: {{ query }}</h2>
+
+        <!-- Displaying the generated MongoDB query -->
+        <h3>Generated MongoDB Query:</h3>
+        <pre>{{ generated_query }}</pre>
+
+        <!-- Displaying the query results in a table -->
+        {% if rows %}
+        <table class="query-result-table">
+            <thead>
+                <tr>
+                    {% for column in columns %}
+                    <th>{{ column }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    {% for cell in row %}
+                    <td>{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No results found for your query.</p>
+        {% endif %}
+
+        <!-- Back Button -->
+        <a href="/nlp_query" class="back-btn">Back to NLP Query</a>
+    </div>
+
+</body>
+</html>

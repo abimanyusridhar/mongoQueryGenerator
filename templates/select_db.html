@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Database | DataSpeak</title>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to right, #f4f4f9, #eef2f3);
+            color: #333;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h2 {
+            margin-top: 20px;
+            font-size: 1.8rem;
+            text-align: center;
+            color: #444;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        form {
+            background: #fff;
+            max-width: 500px;
+            width: 90%;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        label {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+            background: #f9f9f9;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="file"]:focus {
+            border-color: #4caf50;
+            outline: none;
+        }
+
+        input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 20px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-3px);
+        }
+
+        hr {
+            border: 0;
+            height: 1px;
+            background: #ddd;
+            margin: 20px 0;
+        }
+
+        .db-options {
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: #777;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #4caf50;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            form {
+                width: 100%;
+                padding: 15px;
+            }
+
+            button {
+                font-size: 1rem;
+                padding: 10px;
+            }
+
+            h2 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Select a Database</h2>
+    <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm()">
+        <!-- MongoDB Configuration -->
+        <div class="db-options">
+            <label>
+                <input type="radio" name="db_type" value="mongodb" id="mongodb" required>
+                <strong>Connect to MongoDB</strong>
+            </label>
+            <label>Host: <input type="text" name="host" placeholder="e.g., localhost" id="host" disabled aria-required="true"></label>
+            <label>Port: <input type="number" name="port" placeholder="e.g., 27017" id="port" disabled min="1" max="65535" aria-required="true"></label>
+            <label>Database Name: <input type="text" name="database" placeholder="e.g., my_database" id="database" disabled required></label>
+        </div>
+
+        <hr>
+
+        <!-- JSON or JS File Upload -->
+        <div class="db-options">
+            <label>
+                <input type="radio" name="db_type" value="json_or_js" id="json_or_js" required>
+                <strong>Upload JSON or JS File</strong>
+            </label>
+            <label>Choose File: <input type="file" name="db_file" accept=".json, .js" id="db_file" required disabled></label>
+        </div>
+
+        <button type="submit">Connect</button>
+    </form>
+
+    <div class="footer">
+        &copy; 2024 <a href="#">DataSpeak</a> - NLP-Driven Database System
+    </div>
+
+    <script>
+        // JavaScript for dynamic form enabling/disabling
+        const mongodbRadio = document.getElementById('mongodb');
+        const jsonOrJsRadio = document.getElementById('json_or_js');
+        const hostInput = document.getElementById('host');
+        const portInput = document.getElementById('port');
+        const databaseInput = document.getElementById('database');
+        const dbFileInput = document.getElementById('db_file');
+
+        // Function to enable/disable form fields based on the selected database type
+        mongodbRadio.addEventListener('change', function() {
+            if (mongodbRadio.checked) {
+                hostInput.disabled = false;
+                portInput.disabled = false;
+                databaseInput.disabled = false;
+                dbFileInput.disabled = true;
+            }
+        });
+
+        jsonOrJsRadio.addEventListener('change', function() {
+            if (jsonOrJsRadio.checked) {
+                hostInput.disabled = true;
+                portInput.disabled = true;
+                databaseInput.disabled = true;
+                dbFileInput.disabled = false;
+            }
+        });
+
+        // Validation function
+        function validateForm() {
+            if (mongodbRadio.checked) {
+                if (hostInput.value.trim() === "" ||
+                    portInput.value.trim() === "" ||
+                    databaseInput.value.trim() === "") {
+                    alert("Please fill out all MongoDB connection details.");
+                    return false;
+                }
+            } else if (jsonOrJsRadio.checked) {
+                if (!dbFileInput.files.length) {
+                    alert("Please upload a JSON or JS file.");
+                    return false;
+                }
+            }
+            return true;
+        }
+    </script>
+</body>
+</html>
