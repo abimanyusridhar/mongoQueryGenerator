@@ -73,6 +73,12 @@
             z-index: 1;
         }
 
+        .hero-content h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
         .hero-content p {
             font-size: 1.3rem;
             margin-bottom: 2rem;
@@ -208,11 +214,23 @@
             .feature p {
                 font-size: 0.95rem;
             }
+
+            .hero-section {
+                padding: 6rem 2rem;
+            }
+
+            .hero-content h1 {
+                font-size: 2rem;
+            }
+
+            .hero-content p {
+                font-size: 1rem;
+            }
         }
 
         @media (max-width: 480px) {
             .hero-section {
-                padding: 3rem 1.5rem;
+                padding: 4rem 1.5rem;
             }
 
             .btn-primary {
@@ -239,37 +257,37 @@
     <div class="hero-section">
         <div class="hero-content">
             <h1>Welcome to <span style="color:#FFEB3B; font-style: italic;">DataSpeak</span></h1>
-            <p>Interact with your NoSQL databases using natural language. Say goodbye to complex queries—DataSpeak translates your intent into action effortlessly.</p>
+            <p>Transform the way you interact with your NoSQL database. With DataSpeak, you can speak to your database in natural language, making complex queries a thing of the past.</p>
             <a class="btn-primary" href="{{ url_for('login') }}">Get Started</a>
         </div>
     </div>
 
     <!-- Features Section -->
     <div class="features-section">
-        <h2>Why Choose DataSpeak?</h2>
+        <h2>Why DataSpeak?</h2>
         <div class="features-list">
             <div class="feature">
                 <h3>Natural Language Queries</h3>
-                <p>Ask questions in plain English, and let DataSpeak handle the query generation for seamless interaction.</p>
+                <p>Type or speak your queries in plain English, and let DataSpeak generate the appropriate database queries automatically.</p>
             </div>
             <div class="feature">
-                <h3>Interactive Schema Exploration</h3>
-                <p>Visualize your MongoDB schema intuitively, understanding data relationships at a glance.</p>
+                <h3>Effortless Schema Exploration</h3>
+                <p>Easily explore and visualize your MongoDB schema. Understand data relationships and structures without technical jargon.</p>
             </div>
             <div class="feature">
-                <h3>Seamless Integration</h3>
-                <p>Quickly connect to your database without technical hassles—experience smooth and fast setup.</p>
+                <h3>Fast Integration</h3>
+                <p>Set up your connection to MongoDB or any NoSQL database quickly, with no need for complicated configurations.</p>
             </div>
             <div class="feature">
-                <h3>Optimized Performance</h3>
-                <p>Our NLP engine ensures fast and accurate query results, streamlining your database workflow.</p>
+                <h3>Instant Results</h3>
+                <p>Our powerful NLP engine ensures fast, accurate query generation, helping you work efficiently and effectively with your data.</p>
             </div>
         </div>
     </div>
 
     <!-- Footer Section -->
     <footer>
-        <p>© 2024 DataSpeak | Simplify NoSQL Interactions</p>
+        <p>© 2024 DataSpeak | Revolutionizing Database Interactions</p>
     </footer>
 </body>
 </html>

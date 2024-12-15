@@ -28,15 +28,16 @@
             width: 100%;
             background: #ffffff;
             padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #d84315;
         }
 
         h2 {
             text-align: center;
-            font-size: 2rem;
+            font-size: 2.2rem;
             color: #d84315;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
         }
 
         .form-group {
@@ -45,17 +46,18 @@
 
         label {
             font-size: 0.9rem;
-            color: #555;
+            color: #444;
             display: block;
             margin-bottom: 0.5rem;
         }
 
         input {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 1rem;
+            transition: border-color 0.3s ease;
         }
 
         input:focus {
@@ -76,59 +78,76 @@
             cursor: pointer;
             font-size: 0.9rem;
             color: #555;
+            transition: color 0.3s ease;
+        }
+
+        .toggle-password:hover {
+            color: #d84315;
+        }
+
+        .error-message {
+            color: #f44336;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
         }
 
         button {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 1rem;
             font-weight: bold;
             color: #fff;
             background-color: #d84315;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
         button:hover {
             background-color: #bf360c;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #d84315;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .links {
             text-align: center;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
         }
 
         .links a {
             text-decoration: none;
             color: #d84315;
             font-size: 0.9rem;
+            transition: color 0.3s ease;
         }
 
         .links a:hover {
-            text-decoration: underline;
-        }
-
-        .alert {
-            padding: 1rem;
-            border: 1px solid transparent;
-            border-radius: 5px;
-            margin-bottom: 1.5rem;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-        }
-
-        .alert-danger {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
+            color: #bf360c;
         }
 
         /* Responsive Design */
@@ -144,20 +163,13 @@
     </style>
 </head>
 <body>
-    <main class="container">
-        <h2>Register</h2>
-
-        <!-- Flash messages -->
-        {% with messages = get_flashed_messages(with_categories=True) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-        {% endwith %}
+    <main class="container" aria-labelledby="register-title">
+        <h2 id="register-title">Register</h2>
 
         <!-- Registration Form -->
-        <form action="{{ url_for('register') }}" method="POST" novalidate>
+        <form id="register-form" action="{{ url_for('register') }}" method="POST" novalidate>
+            {{ form.hidden_tag() }} <!-- CSRF Token -->
+            
             <div class="form-group">
                 <label for="email">Email</label>
                 <input 
@@ -166,10 +178,8 @@
                     name="email" 
                     placeholder="Enter your email" 
                     aria-label="Email" 
-                    aria-describedby="email-hint"
-                    pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" 
                     required>
-                <p id="email-hint" class="sr-only">Please enter a valid email address.</p>
+                <span id="email-error" class="error-message" aria-live="polite">Please enter a valid email.</span>
             </div>
             
             <div class="form-group password-wrapper">
@@ -181,7 +191,8 @@
                     placeholder="Enter your password" 
                     aria-label="Password" 
                     required>
-                <span class="toggle-password" onclick="togglePassword('password')">Show</span>
+                <span class="toggle-password" role="button" aria-label="Toggle password visibility">Show</span>
+                <span id="password-error" class="error-message" aria-live="polite">Password must be at least 8 characters, contain one number, and one special character.</span>
             </div>
             
             <div class="form-group password-wrapper">
@@ -193,7 +204,8 @@
                     placeholder="Confirm your password" 
                     aria-label="Confirm Password" 
                     required>
-                <span class="toggle-password" onclick="togglePassword('confirm_password')">Show</span>
+                <span class="toggle-password" role="button" aria-label="Toggle confirm password visibility">Show</span>
+                <span id="confirm-password-error" class="error-message" aria-live="polite">Passwords do not match.</span>
             </div>
 
             <button type="submit" aria-label="Register">Register</button>
@@ -206,18 +218,56 @@
 
     <script>
         // Toggle password visibility
-        function togglePassword(id) {
-            const passwordField = document.getElementById(id);
-            const toggleBtn = passwordField.nextElementSibling;
+        document.querySelectorAll('.toggle-password').forEach(toggle => {
+            toggle.addEventListener('click', () => {
+                const input = toggle.previousElementSibling;
+                input.type = input.type === 'password' ? 'text' : 'password';
+                toggle.textContent = input.type === 'password' ? 'Show' : 'Hide';
+            });
+        });
 
-            if (passwordField.type === "password") {
-                passwordField.type = "text";
-                toggleBtn.textContent = "Hide";
+        // Form validation and error handling
+        document.getElementById('register-form').addEventListener('submit', function (e) {
+            const email = document.getElementById('email');
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirm_password');
+            const emailError = document.getElementById('email-error');
+            const passwordError = document.getElementById('password-error');
+            const confirmPasswordError = document.getElementById('confirm-password-error');
+            const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#]).{8,}$/;
+
+            let isValid = true;
+
+            if (!email.validity.valid) {
+                emailError.style.display = 'block';
+                isValid = false;
             } else {
-                passwordField.type = "password";
-                toggleBtn.textContent = "Show";
+                emailError.style.display = 'none';
             }
-        }
+
+            if (!passwordRegex.test(password.value)) {
+                passwordError.style.display = 'block';
+                isValid = false;
+            } else {
+                passwordError.style.display = 'none';
+            }
+
+            if (password.value !== confirmPassword.value) {
+                confirmPasswordError.style.display = 'block';
+                isValid = false;
+            } else {
+                confirmPasswordError.style.display = 'none';
+            }
+
+            // Prevent form submission if invalid
+            if (!isValid) {
+                e.preventDefault();
+            } else {
+                const submitButton = e.target.querySelector('button[type="submit"]');
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<div class="spinner"></div> Registering...';
+            }
+        });
     </script>
 </body>
 </html>
