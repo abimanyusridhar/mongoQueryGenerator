@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Query Results</title>
+    <title>Query Results | DataSpeak</title>
     <style>
         /* General Reset */
         * {
@@ -13,12 +13,12 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Roboto', sans-serif;  /* Changed to Roboto for consistency */
             background-color: #eef2f7;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             overflow-x: hidden;
         }
 
@@ -39,7 +39,7 @@
         }
 
         h1 {
-            color: #333333;
+            color: #00796b;  /* Color scheme consistency with other pages */
             font-size: 30px;
             margin-bottom: 20px;
         }
@@ -74,7 +74,7 @@
         }
 
         .query-result-table th {
-            background-color: #3a6ea5;
+            background-color: #00796b;  /* Changed to match color scheme */
             color: white;
             font-weight: bold;
         }
@@ -99,7 +99,7 @@
 
         .back-btn {
             display: inline-block;
-            background-color: #3a6ea5;
+            background-color: #00796b;  /* Color scheme consistency */
             color: white;
             padding: 12px 25px;
             text-decoration: none;
@@ -109,7 +109,7 @@
         }
 
         .back-btn:hover {
-            background-color: #2a4d70;
+            background-color: #004d40;  /* Darker shade on hover */
             transform: translateY(-2px);
         }
 
@@ -135,32 +135,32 @@
         <!-- Displaying the user's original query -->
         <section aria-labelledby="query-heading">
             <h2 id="query-heading">Your Query:</h2>
-            <pre>{{ query || "No query provided." }}</pre>
+            <pre>{{ query | default("No query provided.") }}</pre>
         </section>
 
         <!-- Displaying the generated MongoDB query -->
         <section aria-labelledby="generated-query-heading">
             <h3 id="generated-query-heading">Generated MongoDB Query:</h3>
-            <pre>{{ generated_query || "No MongoDB query generated." }}</pre>
+            <pre>{{ generated_query | tojson | safe if generated_query else "No MongoDB query generated." }}</pre>
         </section>
 
         <!-- Displaying the query results in a table -->
-        {% if rows and rows.length > 0 %}
+        {% if results %}
         <section aria-labelledby="results-heading">
             <h3 id="results-heading">Query Results:</h3>
             <table class="query-result-table">
                 <thead>
                     <tr>
-                        {% for column in columns %}
+                        {% for column in results[0].keys() %}
                         <th>{{ column }}</th>
                         {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
-                    {% for row in rows %}
+                    {% for row in results %}
                     <tr>
-                        {% for cell in row %}
-                        <td>{{ cell }}</td>
+                        {% for key, value in row.items() %}
+                        <td>{{ value }}</td>
                         {% endfor %}
                     </tr>
                     {% endfor %}
@@ -172,7 +172,7 @@
         {% endif %}
 
         <!-- Back Button -->
-        <a href="/nlp_query" class="back-btn">Back to NLP Query</a>
+        <a href="{{ url_for('nlp_query') }}" class="back-btn">Back to NLP Query</a>
     </main>
 </body>
 </html>

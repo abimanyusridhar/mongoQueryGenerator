@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Database | DataSpeak</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         /* General Reset */
         * {
@@ -214,50 +215,56 @@
         <p>Choose your preferred database configuration method below.</p>
     </header>
 
-    <!-- Form Section -->
     <form id="dbForm" method="POST" enctype="multipart/form-data">
+        <!-- CSRF Token -->
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    
         <div class="radio-group">
             <!-- MongoDB Configuration -->
             <div class="tooltip" data-tooltip="Fill these fields to connect to MongoDB.">
                 <input type="radio" name="db_type" value="mongodb" id="mongodb" required>
                 <label for="mongodb">Connect to MongoDB</label>
             </div>
-
-            <!-- JSON or JS File Upload -->
-            <div class="tooltip" data-tooltip="Upload a valid JSON or JS file.">
-                <input type="radio" name="db_type" value="json_or_js" id="json_or_js" required>
-                <label for="json_or_js">Upload JSON or JS File</label>
+    
+            <!-- JSON File Upload -->
+            <div class="tooltip" data-tooltip="Upload a valid JSON file.">
+                <input type="radio" name="db_type" value="json" id="json" required>
+                <label for="json">Upload JSON File</label>
             </div>
         </div>
-
+    
         <label for="host">Host:</label>
         <input type="text" name="host" id="host" placeholder="e.g., localhost" aria-describedby="hostTooltip" disabled>
-
+        <div id="hostTooltip" class="tooltip">Enter the host address (e.g., localhost).</div>
+    
         <label for="port">Port:</label>
         <input type="number" name="port" id="port" placeholder="e.g., 27017" aria-describedby="portTooltip" disabled>
-
+        <div id="portTooltip" class="tooltip">Enter the port number (e.g., 27017).</div>
+    
         <label for="database">Database Name:</label>
         <input type="text" name="database" id="database" placeholder="e.g., my_database" aria-describedby="databaseTooltip" disabled>
-
+        <div id="databaseTooltip" class="tooltip">Enter the database name.</div>
+    
         <label for="db_file">Choose File:</label>
-        <input type="file" name="db_file" id="db_file" accept=".json, .js" aria-describedby="fileTooltip" disabled>
-
+        <input type="file" name="db_file" id="db_file" accept=".json" aria-describedby="fileTooltip" disabled>
+        <div id="fileTooltip" class="tooltip">Upload a valid JSON file.</div>
+    
         <div class="error-message" id="mongodbError">Please fill out all MongoDB fields.</div>
-        <div class="error-message" id="jsonError">Please upload a valid JSON or JS file.</div>
-
+        <div class="error-message" id="jsonError">Please upload a valid JSON file.</div>
+    
         <button type="submit" id="submitButton" disabled>Connect</button>
         <div class="success-message" id="successMessage" aria-live="polite"></div>
     </form>
 
     <!-- Footer Section -->
     <footer class="footer">
-        &copy; 2024 <a href="#">DataSpeak</a> - NLP-Driven Database System
+        © 2024 <a href="#">DataSpeak</a> - NLP-Driven Database System
     </footer>
 
     <script>
         const dbForm = document.getElementById('dbForm');
         const mongodbRadio = document.getElementById('mongodb');
-        const jsonOrJsRadio = document.getElementById('json_or_js');
+        const jsonRadio = document.getElementById('json');
         const hostInput = document.getElementById('host');
         const portInput = document.getElementById('port');
         const databaseInput = document.getElementById('database');
@@ -274,7 +281,7 @@
             portInput.disabled = !isMongoDB;
             databaseInput.disabled = !isMongoDB;
     
-            // Toggle file input for JSON/JS
+            // Toggle file input for JSON
             dbFileInput.disabled = isMongoDB;
     
             // Clear error messages and validate the form
@@ -289,24 +296,25 @@
             if (mongodbRadio.checked) {
                 isValid = hostInput.value.trim() && portInput.value.trim() && databaseInput.value.trim();
                 mongodbError.style.display = isValid ? 'none' : 'block';
-            } else if (jsonOrJsRadio.checked) {
+            } else if (jsonRadio.checked) {
                 isValid = dbFileInput.files.length > 0;
                 jsonError.style.display = isValid ? 'none' : 'block';
             }
     
-            // Enable/disable submit button based on validation
             submitButton.disabled = !isValid;
         }
     
-        // Event listeners
+        // Add event listeners
         mongodbRadio.addEventListener('change', toggleInputs);
-        jsonOrJsRadio.addEventListener('change', toggleInputs);
+        jsonRadio.addEventListener('change', toggleInputs);
         hostInput.addEventListener('input', validateForm);
         portInput.addEventListener('input', validateForm);
         databaseInput.addEventListener('input', validateForm);
         dbFileInput.addEventListener('change', validateForm);
     
-        // Initial call to set input states based on preselected option
+        // Initial validation and input toggle
         toggleInputs();
+        validateForm();
     </script>
-    
+</body>
+</html>

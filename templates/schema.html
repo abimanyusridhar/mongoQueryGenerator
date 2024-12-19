@@ -164,7 +164,7 @@
 
             .card {
                 flex: 1 1 100%;
-                max-width: none;
+                max-width: none;  /* Ensure the cards take up full width */
             }
         }
     </style>
@@ -193,26 +193,32 @@
         <!-- Schema Section -->
         <section class="schema-view">
             <h2>Database Schema</h2>
-            {% if collections %}
+            {% if schema %}
             <div class="list-container">
-                {% for collection, details in collections.items() %}
+                {% for collection, details in schema.items() %}
                 <div class="card">
                     <h3>{{ collection }}</h3>
                     <ul>
                         <li><strong>Total Documents:</strong> {{ details.total_documents | default('0') }}</li>
                         <li><strong>Avg Document Size:</strong> {{ details.avg_document_size | default('N/A') }} KB</li>
                         <li><strong>Collection Size:</strong> {{ details.get('collection_size', 'N/A') }} bytes</li>
-                        {% if not collections %}
-                       <p>Error: No valid collections were detected. Please verify the database structure.</p>
-                          {% endif %}
-
-                        <li><strong>Fields:</strong> {{ details.fields | join(', ') | default('None') }}</li>
+                        <li><strong>Fields:</strong>
+                            {% if details.fields %}
+                            <ul>
+                                {% for field in details.fields %}
+                                <li>{{ field }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <em>No fields found</em>
+                            {% endif %}
+                        </li>
                         <li><strong>Indexes:</strong>
                             {% if details.indexes %}
                             <ul>
                                 {% for index in details.indexes %}
-                                <li>{{ index.name }}: {{ index.fields | join(', ') }}</li>
-                                {% endfor %}
+                                <li class="tooltip" data-tooltip="{{ index.fields | join(', ') }}">{{ index.name }}</li>
+                                {% endfor}
                             </ul>
                             {% else %}
                             <em>No indexes defined</em>
@@ -237,7 +243,11 @@
                     <h3>{{ model }}</h3>
                     <ul>
                         {% for relation in details %}
-                        <li><strong>{{ relation.field }}</strong> ↔ <em>{{ relation.from_collection }}</em></li>
+                        <li>
+                            <strong>{{ relation.field }}</strong> 
+                            <span class="tooltip" data-tooltip="{{ relation.referenced_id }}">↔</span> 
+                            <em>{{ relation.from_collection }}</em>
+                        </li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -252,8 +262,12 @@
 
     <!-- Footer Section -->
     <footer class="footer">
-        &copy; 2024 <a href="#">DataSpeak</a> - NLP-Driven Database Insights
+        © 2024 <a href="#">DataSpeak</a> - NLP-Driven Database Insights
     </footer>
 
+    <!-- CSRF Token -->
+    <form method="POST" style="display: none;">
+        {% csrf_token %}
+    </form>
 </body>
 </html>

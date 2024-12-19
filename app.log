@@ -1,0 +1,19 @@
+2024-12-19 08:10:25,482 - __main__ - WARNING - Failed login attempt for email: sridharaj12o7@gmail.com
+2024-12-19 08:10:35,837 - __main__ - WARNING - Failed login attempt for email: sridharaj12o7@gmail.com
+2024-12-19 08:10:47,204 - __main__ - WARNING - Failed login attempt for email: sridharaj12o7@gmail.com
+2024-12-19 08:10:53,024 - __main__ - WARNING - Failed login attempt for email: sridharaj12o7@gmail.com
+2024-12-19 08:11:01,795 - __main__ - WARNING - Failed login attempt for email: sridharaj12o7@gmail.com
+2024-12-19 08:17:54,880 - __main__ - INFO - New user registered with email: bnnan@gmail.com
+2024-12-19 08:18:09,306 - __main__ - INFO - User bnnan@gmail.com logged in successfully.
+2024-12-19 08:18:09,324 - __main__ - INFO - User Authenticated: True
+2024-12-19 08:19:17,562 - __main__ - INFO - User bnnan@gmail.com logged in successfully.
+2024-12-19 08:19:17,581 - __main__ - INFO - User Authenticated: True
+2024-12-19 08:19:34,943 - __main__ - INFO - User Authenticated: True
+2024-12-19 08:19:34,944 - __main__ - INFO - Session updated with MongoDB details: {'type': 'mongodb', 'host': 'localhost', 'port': 27017, 'database': 'LibraryDB'}
+2024-12-19 08:19:35,139 - __main__ - ERROR - Error connecting to database: 'tuple' object has no attribute 'items'
+2024-12-19 08:19:35,159 - __main__ - INFO - User Authenticated: True
+2024-12-19 08:20:03,414 - __main__ - INFO - User Authenticated: True
+2024-12-19 08:20:03,425 - __main__ - INFO - Session updated with JSON file path: {'type': 'json', 'file_path': 'C:\\Users\\sridh\\Documents\\CAP_STONE\\mongodb_project\\uploads\\enhanced_dataset_with_relationships.json'}
+2024-12-19 08:20:03,466 - __main__ - ERROR - Error connecting to database: 'tuple' object has no attribute 'items'
+2024-12-19 08:20:03,489 - __main__ - INFO - User Authenticated: True
+2024-12-19 08:28:00,003 - __main__ - INFO - User Authenticated: True

@@ -5,7 +5,7 @@ import logging
 from typing import Optional, Dict, Any
 
 # Initialize logging
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 client = None  # Global MongoDB client object
 
@@ -77,6 +77,8 @@ def connect_to_mongodb(db_details: Dict[str, Any]) -> bool:
 
     except Exception as e:
         logging.error(f"MongoDB Connection Error: {e}")
+        if client:
+            client.close()  # Close the client if an error occurs
         return False
 
 def process_json_file(file_path: str) -> bool:
@@ -129,7 +131,7 @@ def get_connection() -> Optional[MongoClient]:
     Get the active MongoDB client.
 
     Returns:
-    MongoClient: The MongoDB client object if connected, otherwise None.
+    Optional[MongoClient]: The MongoDB client object if connected, otherwise None.
     """
     global client
     if client:
@@ -163,7 +165,7 @@ def generate_schema(db) -> Dict[str, Any]:
 
             # Collect indexes
             indexes = collection.index_information()
-            index_info = [{"name": index, "fields": info["key"]} for index, info in indexes.items()]
+            index_info = [{"name": index, "fields": list(info["key"].items())} for index, info in indexes.items()]
 
             # Identify nullable fields
             nullable_fields = [field for field, value in sample_data.items() if value is None]
@@ -215,3 +217,8 @@ if __name__ == "__main__":
         logging.info("JSON file processed successfully.")
     else:
         logging.error("Failed to process the JSON file.")
+
+    # Ensure to close the MongoDB connection
+    if client:
+        client.close()
+        logging.info("MongoDB connection closed.")

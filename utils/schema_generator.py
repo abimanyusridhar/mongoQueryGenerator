@@ -38,6 +38,8 @@ def connect_to_db(db_details):
         return db
     except Exception as e:
         logging.error(f"Error connecting to the database: {e}")
+        if client:
+            client.close()
         return None
 
 def generate_schema(db):
@@ -74,7 +76,7 @@ def generate_schema(db):
 
             indexes = collection.index_information()
             index_info = [
-                {"name": index_name, "fields": info["key"]}
+                {"name": index_name, "fields": list(info["key"].items())}
                 for index_name, info in indexes.items()
             ]
 
@@ -98,16 +100,15 @@ def extract_relationships(schema):
     relationships = defaultdict(list)
     try:
         for collection_name, details in schema.items():
-            for field, value in details.get("field_details", {}).items():
-                if isinstance(value, dict) and "$ref" in value and "$id" in value:
-                    ref_collection = value.get("$ref")
-                    relationships[ref_collection].append(
-                        {
-                            "from_collection": collection_name,
-                            "field": field,
-                            "referenced_id": value.get("$id")
-                        }
-                    )
+            for field, field_info in details.get("field_details", {}).items():
+                # Check if the field is a MongoDB reference (DBRef)
+                if field_info.get("type") == "DBRef":
+                    ref_collection = field_info.get("collection")
+                    relationships[ref_collection].append({
+                        "from_collection": collection_name,
+                        "field": field,
+                        "referenced_id": field_info.get("id")
+                    })
         logging.info("Relationships successfully extracted.")
     except Exception as e:
         logging.warning(f"Error extracting relationships: {e}")
@@ -118,7 +119,7 @@ def visualize_schema(schema, relationships, db_details, output_file=None):
     if not output_file:
         output_file = f"schema_visualization_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
 
-    net = Network(height="750px", width="100%", directed=True)
+    net = Network(height="750px", width="100%", directed=True, bgcolor="#ffffff", font_color="black")
     try:
         for collection, details in schema.items():
             if not details.get("fields"):
@@ -158,7 +159,9 @@ def visualize_schema(schema, relationships, db_details, output_file=None):
             f"Size on Disk: {db_details['size_on_disk']} bytes"
         )
         net.add_node(db_info_node, label=db_info_label, shape="box", color="#2ecc71")
-        net.add_edge(db_info_node, list(schema.keys())[0], label="Contains", color="#2ecc71")
+        # Connect 'Database Info' to the first collection for simplicity
+        if schema:
+            net.add_edge(db_info_node, list(schema.keys())[0], label="Contains", color="#2ecc71")
 
         net.show(output_file)
         logging.info(f"Schema visualization saved as '{output_file}'.")
@@ -183,3 +186,7 @@ if __name__ == "__main__":
             logging.error("Failed to generate schema.")
     else:
         logging.error("Failed to connect to the database.")
+
+    # Close the client if it was successfully opened
+    if client:
+        client.close()
