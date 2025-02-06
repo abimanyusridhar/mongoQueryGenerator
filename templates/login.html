@@ -4,8 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | DataSpeak</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* General Reset */
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #0f172a;
+                --surface: #1e293b;
+                --text: #f8fafc;
+                --border: #334155;
+            }
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,76 +31,86 @@
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(120deg, #f0f4f8, #ffffff);
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 1.5rem;
+            color: var(--text);
         }
 
         .container {
-            max-width: 400px;
             width: 100%;
-            background: #ffffff;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-            border-top: 4px solid #00796b;
+            max-width: 440px;
+            background: var(--surface);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease;
         }
 
-        /* Google button style */
+        .container:hover {
+            transform: translateY(-2px);
+        }
+
+        h2 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .oauth-section {
+            margin-bottom: 2rem;
+        }
+
         .google-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #4285F4;
-            color: white;
-            border: 1px solid #4285F4;
-            padding: 12px 24px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-size: 16px;
-            font-weight: 600;
+            gap: 12px;
             width: 100%;
-            max-width: 350px;
-            margin: 10px auto;
-            box-sizing: border-box;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: var(--surface);
+            color: var(--text);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
 
         .google-btn:hover {
-            background-color: #357AE8;
+            background: var(--background);
+            border-color: var(--primary);
         }
 
-        /* Google logo image styling */
         .google-logo {
             width: 20px;
-            margin-right: 10px;
-            vertical-align: middle;
+            height: 20px;
         }
 
-        h2 {
-            text-align: center;
-            color: #00796b;
-            margin-bottom: 1rem;
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            color: #64748b;
         }
 
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
         }
 
         .form-group {
@@ -90,135 +118,161 @@
             position: relative;
         }
 
-        label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #333;
+        .input-label {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            pointer-events: none;
+            transition: all 0.2s ease;
         }
 
-        input {
+        .form-control {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1rem;
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            background: var(--surface);
+            color: var(--text);
+            transition: all 0.2s ease;
         }
 
-        input:focus {
+        .form-control:focus,
+        .form-control:valid {
+            border-color: var(--primary);
             outline: none;
-            border-color: #00796b;
-            box-shadow: 0 0 5px rgba(0, 121, 107, 0.5);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
 
-        .error-message {
-            color: #e53935;
-            font-size: 0.8rem;
-            margin-top: 5px;
+        .form-control:focus + .input-label,
+        .form-control:valid + .input-label {
+            top: -0.5rem;
+            left: 0.8rem;
+            font-size: 0.875rem;
+            background: var(--surface);
+            padding: 0 0.25rem;
+            color: var(--primary);
         }
 
-        button {
+        .submit-btn {
             width: 100%;
-            padding: 10px;
-            background-color: #00796b;
-            color: #fff;
+            padding: 1rem;
+            background: linear-gradient(45deg, #6366f1, #8b5cf6);
+            color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 1rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.2s ease;
         }
 
-        button:hover {
-            background-color: #005a4c;
-        }
-
-        button:disabled {
-            background-color: #b2dfdb;
-            cursor: not-allowed;
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
         }
 
         .links {
-            text-align: center;
             margin-top: 1.5rem;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
         }
 
         .links a {
+            color: var(--primary);
             text-decoration: none;
-            color: #00796b;
-            margin: 0 10px;
-            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s ease;
         }
 
-        /* Spinner for loading state */
+        .links a:hover {
+            color: var(--primary-hover);
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            position: relative;
+            padding-left: 3rem;
+        }
+
+        .alert-success {
+            background: #dcfce7;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+        }
+
+        .alert-danger {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
         .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #00796b;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
             border-radius: 50%;
             animation: spin 1s linear infinite;
+            margin: 0 auto;
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-            100% {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
     <main class="container">
-        <h2>Login</h2>
+        <h2>Welcome</h2>
 
-        <!-- Flash Messages -->
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
+            <div class="alert alert-{{ category }}">
+                {{ message }}
+            </div>
             {% endfor %}
         {% endif %}
         {% endwith %}
 
-        <!-- Google OAuth Login -->
-        <a class="google-btn" href="{{ url_for('google_login') }}">
-            <img src="{{ url_for('static', filename='images/google_logo.png') }}" alt="Google Logo" class="google-logo">
-            Login with Google
-        </a>
+        <div class="oauth-section">
+            <a class="google-btn" href="{{ url_for('google_login') }}">
+                <img src="{{ url_for('static', filename='images/google_logo.png') }}" 
+                     alt="Google Logo" 
+                     class="google-logo">
+                Continue with Google
+            </a>
+        </div>
 
-        <!-- Login Form -->
-        <form method="POST" action="{{ url_for('login') }}" id="login-form" novalidate>
+        <div class="divider">or continue with email</div>
+
+        <form method="POST" action="{{ url_for('login') }}" id="login-form">
             {{ form.hidden_tag() }}
 
-            <!-- Email Input -->
             <div class="form-group">
-                <label for="email">Email</label>
-                {{ form.email(id="email", placeholder="Enter your email", required="required", class="form-control") }}
-                {% if form.email.errors %}
-                    <p class="error-message">{{ form.email.errors[0] }}</p>
-                {% endif %}
+                {{ form.email(id="email", class="form-control", required="required") }}
+                <label for="email" class="input-label">Email address</label>
             </div>
 
-            <!-- Password Input -->
             <div class="form-group">
-                <label for="password">Password</label>
-                {{ form.password(id="password", placeholder="Enter your password", required="required", class="form-control") }}
-                {% if form.password.errors %}
-                    <p class="error-message">{{ form.password.errors[0] }}</p>
-                {% endif %}
+                {{ form.password(id="password", class="form-control", required="required") }}
+                <label for="password" class="input-label">Password</label>
             </div>
 
-            <!-- Submit Button -->
-            <button type="submit" id="submit-button" class="btn btn-primary">Login</button>
+            <button type="submit" class="submit-btn" id="submit-button">
+                Sign In
+            </button>
         </form>
 
-        <!-- Links -->
         <div class="links">
-            <a href="{{ url_for('register') }}">Register</a> |
-            <a href="{{ url_for('reset_password') }}">Forgot Password?</a>
+            <a href="{{ url_for('register') }}">Create account</a>
+            <a href="{{ url_for('reset_password') }}">Forgot password?</a>
         </div>
     </main>
 </body>

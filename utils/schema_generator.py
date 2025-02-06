@@ -1,192 +1,218 @@
-from pymongo import MongoClient
-from collections import defaultdict
-from pyvis.network import Network
-import logging
-from datetime import datetime
+from contextlib import contextmanager
 from bson import ObjectId, DBRef
+from pymongo import MongoClient, errors
+from typing import Dict, Any, List, Optional
+from collections import defaultdict
+import json
+import logging
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-# Global MongoDB client
-client = None
+mongo_client = None
 
-# MongoDB connection defaults
-DEFAULT_MONGODB_HOST = "localhost"
-DEFAULT_MONGODB_PORT = 27017
+@contextmanager
+def get_mongo_client(host: str, port: int):
+    """
+    Context manager for MongoDB connection with optimized settings.
 
-def connect_to_db(db_details):
-    """Connect to a MongoDB database."""
-    global client
+    :param host: Host address for MongoDB server.
+    :param port: Port number for MongoDB server.
+    :yield: MongoClient instance.
+    """
+    global mongo_client
     try:
-        if db_details.get("type") != "mongodb":
-            raise ValueError("Unsupported database type. Only MongoDB is supported.")
-
-        host = db_details.get("host", DEFAULT_MONGODB_HOST)
-        port = db_details.get("port", DEFAULT_MONGODB_PORT)
-
-        client = MongoClient(host=host, port=port)
-        client.admin.command("ping")  # Test the connection
-        logging.info(f"Connected to MongoDB server at {host}:{port}")
-
-        db_name = db_details.get("database")
-        if not db_name:
-            raise ValueError("Database name is required.")
-
-        db = client[db_name]
-        logging.info(f"Connected to MongoDB database '{db_name}' successfully.")
-        return db
+        if mongo_client is None or not mongo_client.admin.command('ping')['ok']:
+            mongo_client = MongoClient(
+                host=host,
+                port=port,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=10000,
+                socketTimeoutMS=30000,
+                maxPoolSize=100,
+                minPoolSize=10
+            )
+            mongo_client.admin.command('ping')  # Test connection
+        yield mongo_client
+    except errors.ServerSelectionTimeoutError as e:
+        logger.error(f"Failed to connect to MongoDB: {e}")
+        raise
     except Exception as e:
-        logging.error(f"Error connecting to the database: {e}")
-        if client:
-            client.close()
-        return None
+        logger.error(f"Unexpected MongoDB connection error: {e}")
+        raise
 
-def generate_schema(db):
-    """Generate schema with additional insights for visualization."""
-    schema = {}
-    db_details = {}
+def infer_mongodb_type(value: Any) -> str:
+    """
+    Infer the MongoDB type from a Python value.
+
+    :param value: The Python value to infer type from.
+    :return: The inferred MongoDB type as a string.
+    """
+    if isinstance(value, dict):
+        if '$date' in value:
+            return 'date'
+        elif '$oid' in value:
+            return 'ObjectId'
+        else:
+            return 'object'
+    elif isinstance(value, list):
+        if value:
+            return f"array of {infer_mongodb_type(value[0])}"
+        else:
+            return 'array'
+    elif isinstance(value, (ObjectId, DBRef)):
+        return 'ObjectId'
+    else:
+        return type(value).__name__
+
+def analyze_field(collection, field: str, sample_size: int = 1000) -> Dict[str, Any]:
+    """
+    Analyze a field in a MongoDB collection for type, distinct values, and nullability.
+
+    :param collection: MongoDB collection object.
+    :param field: Name of the field to analyze.
+    :param sample_size: Number of documents to sample for analysis.
+    :return: Dictionary with field analysis data.
+    """
     try:
-        db_stats = db.command("dbstats")
-        db_details = {
-            "name": db.name,
-            "collections_count": len(db.list_collection_names()),
-            "size_on_disk": db_stats.get("dataSize", 0)
-        }
-
-        for collection_name in db.list_collection_names():
-            collection = db[collection_name]
-            sample_data = collection.find_one() or {}
-            total_documents = collection.count_documents({})
-            avg_document_size = collection.aggregate([
-                {"$group": {"_id": None, "avgSize": {"$avg": {"$bsonSize": "$$ROOT"}}}}
-            ])
-            avg_size = next(avg_document_size, {}).get("avgSize", 0)
-
-            field_details = {}
-            for field, value in sample_data.items():
-                field_type = type(value).__name__
-                distinct_values = collection.distinct(field)
-                nullable_count = collection.count_documents({field: None})
-                field_details[field] = {
-                    "type": field_type,
-                    "distinct_values_count": len(distinct_values),
-                    "nullable_count": nullable_count
-                }
-
-            indexes = collection.index_information()
-            index_info = [
-                {"name": index_name, "fields": list(info["key"].items())}
-                for index_name, info in indexes.items()
-            ]
-
-            schema[collection_name] = {
-                "fields": list(sample_data.keys()),
-                "field_details": field_details,
-                "total_documents": total_documents,
-                "avg_document_size": avg_size / 1024,  # Convert to KB
-                "collection_size": db.command({"collStats": collection_name}).get("size", 0),
-                "indexes": index_info
+        if collection.count_documents({field: {"$exists": True}}, limit=1) == 0:
+            return {
+                "type": "unknown",
+                "distinct_values_count": 0,
+                "top_values": [],
+                "nullable_count": 0,
+                "non_null_count": 0
             }
 
-        logging.info("Schema generation successful.")
-        return schema, db_details
-    except Exception as e:
-        logging.error(f"Error generating schema: {e}")
-        return schema, db_details
+        pipeline = [
+            {"$match": {field: {"$exists": True}}},
+            {"$sample": {"size": sample_size}},
+            {"$group": {
+                "_id": f"${field}",
+                "count": {"$sum": 1}
+            }},
+            {"$sort": {"count": -1}},
+            {"$limit": 5}
+        ]
 
-def extract_relationships(schema):
-    """Extract relationships between collections based on schema details."""
+        distinct_values = list(collection.aggregate(pipeline))
+        sample_value = collection.find_one({field: {"$exists": True}}, {field: 1}) or {}
+
+        return {
+            "type": infer_mongodb_type(sample_value.get(field)),
+            "distinct_values_count": len(distinct_values),
+            "top_values": [{"value": item['_id'], "count": item['count']} for item in distinct_values],
+            "nullable_count": collection.count_documents({field: None}),
+            "non_null_count": collection.count_documents({field: {"$exists": True, "$ne": None}})
+        }
+    except Exception as e:
+        logger.error(f"Error analyzing field '{field}': {e}")
+        return {
+            "type": "unknown",
+            "distinct_values_count": 0,
+            "top_values": [],
+            "nullable_count": 0,
+            "non_null_count": 0
+        }
+
+def generate_schema(databases: Optional[List[str]] = None) -> Dict[str, Dict[Any, Any]]:
+    """
+    Generate schema from MongoDB databases and collections with performance optimizations.
+
+    :param databases: Optional list of database names to process.
+    :return: Dictionary containing schema information for each database and collection.
+    """
+    schema = {}
+    with get_mongo_client('localhost', 27017) as client:  # Hardcoded for example, should use app.config in Flask context
+        db_names = databases or [db for db in client.list_database_names() if db not in ["admin", "config", "local"]]
+
+        for db_name in db_names:
+            db = client[db_name]
+            db_schema = {}
+
+            for collection_name in db.list_collection_names():
+                collection = db[collection_name]
+                try:
+                    sample_data = next(collection.aggregate([{"$sample": {"size": 1}}]), {})
+                    fields = []
+                    field_details = {}
+
+                    def _process_nested(obj, prefix=''):
+                        if isinstance(obj, dict):
+                            for key, value in obj.items():
+                                full_key = f"{prefix}.{key}" if prefix else key
+                                fields.append(full_key)
+                                if collection.count_documents({full_key: {"$exists": True}}, limit=2) > 1:
+                                    field_details[full_key] = analyze_field(collection, full_key)
+                                _process_nested(value, full_key)
+                        elif isinstance(obj, list) and obj:
+                            if isinstance(obj[0], (dict, list)):
+                                _process_nested(obj[0], prefix)
+
+                    _process_nested(sample_data)
+
+                    stats = next(collection.aggregate([
+                        {"$group": {
+                            "_id": None,
+                            "total_documents": {"$sum": 1},
+                            "avg_size": {"$avg": {"$bsonSize": "$$ROOT"}}
+                        }}
+                    ]), {})
+
+                    total_documents = stats.get("total_documents", 0)
+                    avg_size = round(stats.get("avg_size", 0) / 1024, 2)
+
+                    db_schema[collection_name] = {
+                        "fields": fields,
+                        "field_details": field_details,
+                        "sample_data": [sample_data],
+                        "total_documents": total_documents,
+                        "avg_document_size": avg_size,
+                        "collection_size": round(db.command({"collStats": collection_name}).get("size", 0) / (1024 * 1024), 2),
+                        "indexes": [{"name": name, "fields": list(index_info["key"].items())} for name, index_info in collection.index_information().items() if name != "_id_"]
+                    }
+                except errors.OperationFailure as e:
+                    logger.error(f"Operation failure in collection '{collection_name}' of database '{db_name}': {e}")
+                except Exception as e:
+                    logger.error(f"Unexpected error processing collection '{collection_name}' in database '{db_name}': {e}")
+
+            schema[db_name] = db_schema
+
+    logger.info("Schema generation successful.")
+    return schema
+
+def extract_relationships(schema: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Extract relationships between collections based on schema details.
+
+    :param schema: The generated schema from MongoDB.
+    :return: Relationships between collections.
+    """
     relationships = defaultdict(list)
-    try:
-        for collection_name, details in schema.items():
+    for db_name, db_schema in schema.items():
+        for collection_name, details in db_schema.items():
             for field, field_info in details.get("field_details", {}).items():
-                # Check if the field is a MongoDB reference (DBRef)
-                if field_info.get("type") == "DBRef":
-                    ref_collection = field_info.get("collection")
+                if field_info.get("type") in ["ObjectId", "DBRef"]:
+                    ref_collection = field.split('.')[0] if '.' in field else collection_name
                     relationships[ref_collection].append({
+                        "from_db": db_name,
                         "from_collection": collection_name,
                         "field": field,
-                        "referenced_id": field_info.get("id")
+                        "type": field_info.get("type")
                     })
-        logging.info("Relationships successfully extracted.")
-    except Exception as e:
-        logging.warning(f"Error extracting relationships: {e}")
     return dict(relationships)
 
-def visualize_schema(schema, relationships, db_details, output_file=None):
-    """Visualize the MongoDB schema and relationships using PyVis."""
-    if not output_file:
-        output_file = f"schema_visualization_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+def serialize_schema(schema: Dict[str, Dict]) -> str:
+    """
+    Serialize the schema into a JSON string.
 
-    net = Network(height="750px", width="100%", directed=True, bgcolor="#ffffff", font_color="black")
-    try:
-        for collection, details in schema.items():
-            if not details.get("fields"):
-                continue
+    :param schema: Dictionary containing database schema information.
+    :return: JSON string of the serialized schema.
+    """
+    def default_serializer(obj):
+        if isinstance(obj, (ObjectId, DBRef)):
+            return str(obj)
+        raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 
-            collection_label = (
-                f"{collection}\nDocuments: {details['total_documents']}\nAvg Size: "
-                f"{details['avg_document_size']:.2f} KB\nSize: {details['collection_size']} bytes"
-            )
-            net.add_node(collection, label=collection_label, shape="ellipse", color="#76c7c0")
-
-            for field, field_info in details.get("field_details", {}).items():
-                field_node = f"{collection}.{field}"
-                net.add_node(
-                    field_node,
-                    label=(
-                        f"{field} ({field_info['type']})\nDistinct: {field_info['distinct_values_count']}\n"
-                        f"Nullable: {field_info['nullable_count']}"
-                    ),
-                    shape="box",
-                    color="#f39c12"
-                )
-                net.add_edge(collection, field_node, color="#3498db")
-
-        for ref_collection, refs in relationships.items():
-            for ref in refs:
-                net.add_edge(
-                    ref["from_collection"],
-                    ref_collection,
-                    label=f"Ref: {ref['field']}",
-                    color="#e74c3c"
-                )
-
-        db_info_node = "Database Info"
-        db_info_label = (
-            f"{db_details['name']}\nCollections: {db_details['collections_count']}\n"
-            f"Size on Disk: {db_details['size_on_disk']} bytes"
-        )
-        net.add_node(db_info_node, label=db_info_label, shape="box", color="#2ecc71")
-        # Connect 'Database Info' to the first collection for simplicity
-        if schema:
-            net.add_edge(db_info_node, list(schema.keys())[0], label="Contains", color="#2ecc71")
-
-        net.show(output_file)
-        logging.info(f"Schema visualization saved as '{output_file}'.")
-    except Exception as e:
-        logging.error(f"Error visualizing schema: {e}")
-
-if __name__ == "__main__":
-    db_details = {
-        "type": "mongodb",
-        "host": DEFAULT_MONGODB_HOST,
-        "port": DEFAULT_MONGODB_PORT,
-        "database": "test_db"
-    }
-    db = connect_to_db(db_details)
-
-    if db:
-        schema, db_details = generate_schema(db)
-        if schema:
-            relationships = extract_relationships(schema)
-            visualize_schema(schema, relationships, db_details)
-        else:
-            logging.error("Failed to generate schema.")
-    else:
-        logging.error("Failed to connect to the database.")
-
-    # Close the client if it was successfully opened
-    if client:
-        client.close()
+    return json.dumps(schema, indent=2, default=default_serializer)

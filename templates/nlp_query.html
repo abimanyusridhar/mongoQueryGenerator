@@ -3,216 +3,488 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Natural Language Query Input | DataSpeak</title>
+    <title>Natural Language Query Interface | DataSpeak</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #3b82f6;
+            --error-color: #dc2626;
+            --success-color: #16a34a;
+            --background-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            --surface-color: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+        }
+
         body {
-            font-family: 'Roboto', sans-serif; /* Changed to match other pages */
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 0;
-            background-color: #f0f0f5;
+            padding: 2rem;
+            background: var(--background-gradient);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            color: var(--text-primary);
         }
 
         .container {
-            width: 90%;
-            max-width: 600px;
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .container:hover {
-            transform: scale(1.02);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            width: min(90%, 800px);
+            background: var(--surface-color);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+            border: 1px solid #e2e8f0;
         }
 
         h1 {
-            color: #00796b; /* Theme color consistency */
-            font-size: 26px;
-            margin-bottom: 20px;
+            color: var(--primary-color);
+            font-size: 2rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+            padding-bottom: 1rem;
+        }
+
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+
+        .input-group {
+            margin: 2.5rem 0;
+            position: relative;
         }
 
         .input-field {
             width: 100%;
-            padding: 14px;
-            margin: 20px 0;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 16px;
-            background-color: #f9f9f9;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            padding: 1.25rem 1.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+            padding-right: 3.5rem;
+            color: var(--text-primary);
         }
 
         .input-field:focus {
-            border-color: #00796b; /* Theme color consistency */
-            box-shadow: 0 0 5px rgba(0, 121, 107, 0.5);
+            border-color: var(--primary-color);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
             outline: none;
         }
 
-        .submit-btn {
-            background-color: #00796b; /* Theme color consistency */
-            color: white;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 5px;
-            font-size: 18px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.3s ease;
+        .input-field::placeholder {
+            color: #94a3b8;
         }
 
-        .submit-btn:hover {
-            background-color: #004d40; /* Darker shade for hover */
-            transform: translateY(-2px);
+        .submit-btn {
+            width: 100%;
+            padding: 1.1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+            background: var(--secondary-color);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .submit-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            opacity: 0.8;
         }
 
         .message {
-            font-size: 14px;
-            margin-top: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            margin: 1.5rem 0;
+            font-weight: 500;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .message.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
 
         .error-message {
-            color: #f44336; /* Red from Material Design palette */
+            background: #fee2e2;
+            color: var(--error-color);
+            border: 1px solid #fecaca;
         }
 
         .success-message {
-            color: #4caf50; /* Green from Material Design palette */
+            background: #dcfce7;
+            color: var(--success-color);
+            border: 1px solid #bbf7d0;
         }
 
-        .generated-query {
-            background-color: #f8f8f8;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            margin-top: 20px;
-            word-wrap: break-word;
-            text-align: left;
-            font-family: 'Courier New', Courier, monospace;
-            white-space: pre-wrap;
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
             display: none;
+            background: var(--surface-color);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .results-table.visible {
+            display: table;
+        }
+
+        .results-table th,
+        .results-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .results-table th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        .results-table tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+
+        .results-table tr:hover {
+            background-color: #f1f5f9;
         }
 
         .loading-spinner {
             display: none;
-            margin: 20px auto;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #00796b; /* Theme color consistency */
+            margin: 2rem auto;
+            width: 2.5rem;
+            height: 2.5rem;
+            border: 3px solid #e2e8f0;
+            border-top-color: var(--primary-color);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
             animation: spin 1s linear infinite;
         }
 
+        .query-examples {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 0.75rem;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .query-examples h3 {
+            margin: 0 0 0.75rem 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .examples-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .example-chip {
+            padding: 0.4rem 0.8rem;
+            background: #e0f2fe;
+            color: var(--primary-color);
+            border-radius: 999px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .example-chip:hover {
+            background: #bae6fd;
+            transform: translateY(-1px);
+        }
+
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+                border-radius: 1rem;
             }
-            100% {
-                transform: rotate(360deg);
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .input-field {
+                padding: 1rem;
+            }
+
+            .submit-btn {
+                padding: 1rem;
             }
         }
 
-        @media (max-width: 768px) {
-            .container {
-                width: 95%;
-            }
+        .powered-by {
+            text-align: center;
+            margin-top: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .keyboard-shortcut {
+            position: absolute;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e2e8f0;
+            color: var(--text-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
+    <div class="container" role="main">
+        <h1>Natural Language to MONGODB Query</h1>
+        
+        <div class="query-examples">
+            <h3>Try these examples:</h3>
+            <div class="examples-list">
+                <div class="example-chip" onclick="fillExample('Show users with age greater than 25')">Age > 25</div>
+                <div class="example-chip" onclick="fillExample('List orders from last month')">Recent Orders</div>
+                <div class="example-chip" onclick="fillExample('Top 5 customers by revenue')">Top Customers</div>
+            </div>
+        </div>
 
-    <div class="container" role="form">
-        <h1>Enter Your Natural Language Query</h1>
-        <form id="queryForm" aria-label="Natural Language Query Input Form">
-            <input 
-                type="text" 
-                id="nlpQuery" 
-                class="input-field" 
-                placeholder="Type your query here" 
-                aria-label="Natural Language Query" 
-                required>
-            <button type="submit" class="submit-btn">Generate Query</button>
+        <form id="queryForm" class="input-group">
+            {{ form.csrf_token }}
+            <div style="position: relative;">
+                <input 
+                    type="text" 
+                    id="nlpQuery" 
+                    class="input-field"
+                    placeholder="Ask your data question in plain English..."
+                    aria-label="Enter your natural language query"
+                    required
+                >
+                <span class="keyboard-shortcut">⌘⏎</span>
+            </div>
+            <button 
+                type="submit" 
+                class="submit-btn"
+                aria-live="polite"
+            >
+                <i class="fas fa-magic"></i>
+                Generate Query
+            </button>
         </form>
-        <div id="loadingSpinner" class="loading-spinner" aria-hidden="true"></div>
-        <div id="errorMessage" class="message error-message" aria-live="polite"></div>
-        <div id="successMessage" class="message success-message" aria-live="polite"></div>
-        <div id="generatedQuery" class="generated-query" aria-labelledby="successMessage"></div>
+
+        <div class="loading-spinner" id="loadingSpinner" aria-hidden="true"></div>
+
+        <div 
+            id="messageContainer" 
+            role="alert"
+            class="message"
+            aria-live="assertive"
+        ></div>
+
+        <table class="results-table" id="resultsTable" aria-live="polite">
+            <thead>
+                <tr></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <div class="powered-by">
+            <i class="fas fa-shield-alt"></i>
+            <span>Secure Processing • AI-Powered Insights</span>
+        </div>
     </div>
 
     <script>
-        const form = document.getElementById('queryForm');
-        const nlpQuery = document.getElementById('nlpQuery');
-        const errorMessage = document.getElementById('errorMessage');
-        const successMessage = document.getElementById('successMessage');
-        const generatedQuery = document.getElementById('generatedQuery');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            resetMessages();
-            const query = nlpQuery.value.trim();
-
-            if (!validateQuery(query)) {
-                displayMessage(errorMessage, "Please enter a valid query with at least 5 characters.");
-                return;
-            }
-
-            loadingSpinner.style.display = 'block';
-
-            try {
-                const response = await fetch('/nlp_query', { // Changed to nlp_query to match route name
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content // Assuming CSRF token is set in meta tag
-                    },
-                    body: JSON.stringify({ query }),
-                });
-
-                const data = await response.json();
-                loadingSpinner.style.display = 'none';
-
-                if (response.ok) {
-                    if (data.success) {
-                        displayMessage(successMessage, "Query generated successfully!");
-                        generatedQuery.style.display = 'block';
-                        generatedQuery.textContent = JSON.stringify(data.generated_query, null, 2);
-                    } else {
-                        displayMessage(errorMessage, data.message || "Failed to generate query. Please try again.");
-                    }
-                } else {
-                    displayMessage(errorMessage, "An error occurred with the server response.");
+        (() => {
+            const form = document.getElementById('queryForm');
+            const input = document.getElementById('nlpQuery');
+            const btn = form.querySelector('button');
+            const messageContainer = document.getElementById('messageContainer');
+            const resultsTable = document.getElementById('resultsTable');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            const showMessage = (message, type = 'error', duration = 5000) => {
+                const icon = type === 'error' ? '⛔' : '✅';
+                messageContainer.innerHTML = `
+                    <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+                    ${message}
+                `;
+                messageContainer.className = `message ${type}-message visible`;
+                
+                if (duration) {
+                    setTimeout(() => {
+                        messageContainer.classList.remove('visible');
+                    }, duration);
                 }
-            } catch (error) {
-                loadingSpinner.style.display = 'none';
-                displayMessage(errorMessage, "An error occurred. Please try again later.");
-                console.error("Error:", error);
+            };
+
+            const renderResults = (data) => {
+                if (!data.length) {
+                    showMessage('No matching records found', 'success');
+                    return;
+                }
+
+                const headers = Object.keys(data[0]);
+                const headerRow = resultsTable.querySelector('thead tr');
+                headerRow.innerHTML = headers
+                    .map(header => `<th>${header.replace(/_/g, ' ')}</th>`)
+                    .join('');
+
+                const body = resultsTable.querySelector('tbody');
+                body.innerHTML = data
+                    .map(item => `
+                        <tr>
+                            ${headers.map(header => `
+                                <td>${formatCellContent(item[header])}</td>
+                            `).join('')}
+                        </tr>
+                    `)
+                    .join('');
+
+                resultsTable.classList.add('visible');
+            };
+
+            const formatCellContent = (content) => {
+                if (typeof content === 'object') return JSON.stringify(content, null, 2);
+                if (typeof content === 'boolean') return content ? '✓' : '✗';
+                return content;
+            };
+
+            input.addEventListener('input', debounce((e) => {
+                if (input.value.trim().length >= 3) {
+                    // Add real-time validation/feedback
+                }
+            }, 300));
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const query = input.value.trim();
+                if (!validateQuery(query)) return;
+
+                toggleLoading(true);
+                clearResults();
+
+                try {
+                    const response = await fetch('/nlp_query', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': form.querySelector('input[name="csrf_token"]').value
+                        },
+                        body: JSON.stringify({ query }),
+                    });
+
+                    const data = await handleResponse(response);
+                    if (data.results) renderResults(data.results);
+                    
+                } catch (error) {
+                    showMessage(error.message, 'error');
+                } finally {
+                    toggleLoading(false);
+                }
+            });
+
+            // Utility functions
+            function validateQuery(query) {
+                if (query.length < 5) {
+                    showMessage('Query must be at least 5 characters', 'error');
+                    return false;
+                }
+                return true;
             }
-        });
 
-        function validateQuery(query) {
-            return query.length >= 5 && /^[a-zA-Z0-9\s,.'-]+$/.test(query);
-        }
+            function toggleLoading(isLoading) {
+                btn.disabled = isLoading;
+                loadingSpinner.style.display = isLoading ? 'block' : 'none';
+                document.body.style.cursor = isLoading ? 'wait' : 'default';
+            }
 
-        function resetMessages() {
-            errorMessage.style.opacity = 0;
-            successMessage.style.opacity = 0;
-            generatedQuery.style.display = 'none';
-            generatedQuery.textContent = '';
-        }
+            function clearResults() {
+                resultsTable.classList.remove('visible');
+                resultsTable.querySelector('thead tr').innerHTML = '';
+                resultsTable.querySelector('tbody').innerHTML = '';
+            }
 
-        function displayMessage(element, message) {
-            element.textContent = message;
-            element.style.opacity = 1;
-        }
+            async function handleResponse(response) {
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Request failed');
+                }
+                return response.json();
+            }
+
+            function debounce(fn, delay) {
+                let timeout;
+                return (...args) => {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => fn.apply(this, args), delay);
+                };
+            }
+
+            window.fillExample = (text) => {
+                input.value = text;
+                input.focus();
+            };
+
+            // Keyboard shortcut
+            document.addEventListener('keydown', (e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    form.requestSubmit();
+                }
+            });
+        })();
     </script>
 </body>
 </html>

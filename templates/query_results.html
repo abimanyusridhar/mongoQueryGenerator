@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Query Results | DataSpeak</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        :root {
+            --primary: #2A9D8F;
+            --secondary: #264653;
+            --accent: #E9C46A;
+            --background: #F8F9FA;
+            --text: #343A40;
+            --success: #4CAF50;
+            --error: #E76F51;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 2rem;
+            background: var(--secondary);
+            color: white;
+            border-bottom: 4px solid var(--accent);
+        }
+
+        .header h1 {
+            font-weight: 700;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .section {
+            padding: 2rem;
+            border-bottom: 1px solid #eee;
+        }
+
+        .section:last-child {
+            border-bottom: none;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .terminal {
+            background: #1E1E1E;
+            border-radius: 8px;
+            margin: 1rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .terminal-header {
+            padding: 0.75rem 1rem;
+            background: #252526;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .terminal-title {
+            font-weight: 500;
+            color: #9CDCFE;
+            font-size: 0.9rem;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #228176;
+        }
+
+        .btn-secondary {
+            background: #374952;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #2D3B44;
+        }
+
+        .stats {
+            display: flex;
+            gap: 2rem;
+            padding: 1rem;
+            background: #F1FAEE;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6C757D;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        .result-views {
+            margin-top: 1.5rem;
+            position: relative;
+        }
+
+        .result-view {
+            display: none;
+        }
+
+        .result-view.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .table-container {
+            max-height: 500px;
+            overflow: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: auto;
+        }
+
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--background);
+            font-weight: 600;
+            color: var(--secondary);
+        }
+
+        tr:hover {
+            background: #F8F9FA;
+        }
+
+        .json-viewer {
+            background: #1E1E1E;
+            padding: 1rem;
+            border-radius: 8px;
+            max-height: 500px;
+            overflow: auto;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            margin: 2rem 0;
+            text-decoration: none;
+            background: var(--secondary);
+            color: white;
+            border-radius: 8px;
+            transition: background 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: #1D3440;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--secondary);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+            
+            .stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Query Results</h1>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-label">Documents:</span>
+                    <span class="stat-value" id="docCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Execution Time:</span>
+                    <span class="stat-value" id="execTime">0ms</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">Generated Query</h2>
+                <div class="btn-group">
+                    <button class="btn btn-secondary" id="copyQuery">
+                        <i class="fas fa-copy"></i>
+                        Copy
+                    </button>
+                </div>
+            </div>
+            <div class="terminal">
+                <div class="terminal-header">
+                    <span class="terminal-title">MongoDB Query</span>
+                </div>
+                <div id="queryEditor"></div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-header">
+                <h2 class="section-title">Results</h2>
+                <div class="btn-group">
+                    <button class="btn btn-secondary view-toggle active" data-view="table">
+                        <i class="fas fa-table"></i>
+                        Table
+                    </button>
+                    <button class="btn btn-secondary view-toggle" data-view="json">
+                        <i class="fas fa-code"></i>
+                        JSON
+                    </button>
+                    <button class="btn btn-primary" id="exportCsv">
+                        <i class="fas fa-file-csv"></i>
+                        CSV
+                    </button>
+                    <button class="btn btn-primary" id="exportJson">
+                        <i class="fas fa-file-code"></i>
+                        JSON
+                    </button>
+                </div>
+            </div>
+
+            <div class="result-views">
+                <div class="result-view active" id="tableView">
+                    <div class="table-container">
+                        <table id="resultTable"></table>
+                    </div>
+                </div>
+                <div class="result-view" id="jsonView">
+                    <pre class="json-viewer" id="jsonContent"></pre>
+                </div>
+            </div>
+        </section>
+
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <a href="{{ url_for('query') }}" class="back-btn">
+        <i class="fas fa-arrow-left"></i>
+        Back to Query Builder
+    </a>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize CodeMirror with dark theme
+            const queryEditor = CodeMirror(document.getElementById('queryEditor'), {
+                mode: 'javascript',
+                theme: 'material',
+                lineNumbers: true,
+                readOnly: true,
+                value: JSON.parse(`{{ mongo_query | tojson | safe }}` || '{}')
+            });
+
+            // Initialize results
+            let results = JSON.parse(`{{ results | tojson | safe }}` || '[]');
+            let currentView = 'table';
+
+            // Initialize UI
+            updateStats(results.length, 0);
+            renderTableView(results);
+            renderJsonView(results);
+
+            // View toggle
+            document.querySelectorAll('.view-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentView = btn.dataset.view;
+                    document.querySelectorAll('.result-view').forEach(view => {
+                        view.classList.remove('active');
+                    });
+                    document.getElementById(`${currentView}View`).classList.add('active');
+                    document.querySelectorAll('.view-toggle').forEach(b => {
+                        b.classList.toggle('active', b === btn);
+                    });
+                });
+            });
+
+            // Export handlers
+            document.getElementById('exportCsv').addEventListener('click', () => exportData('csv'));
+            document.getElementById('exportJson').addEventListener('click', () => exportData('json'));
+
+            // Copy query
+            document.getElementById('copyQuery').addEventListener('click', () => {
+                navigator.clipboard.writeText(queryEditor.getValue())
+                    .then(() => showToast('Query copied to clipboard'))
+                    .catch(() => showToast('Failed to copy', 'error'));
+            });
+
+            function renderTableView(data) {
+                const table = document.getElementById('resultTable');
+                table.innerHTML = '';
+
+                if (data.length === 0) {
+                    table.innerHTML = '<tr><td colspan="100%" class="empty">No results found</td></tr>';
+                    return;
+                }
+
+                // Create header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                Object.keys(data[0]).forEach(key => {
+                    const th = document.createElement('th');
+                    th.textContent = key;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+
+                // Create body
+                const tbody = document.createElement('tbody');
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    Object.values(item).forEach(value => {
+                        const td = document.createElement('td');
+                        td.textContent = typeof value === 'object' 
+                            ? JSON.stringify(value, null, 2)
+                            : value || '—';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+            }
+
+            function renderJsonView(data) {
+                const pre = document.getElementById('jsonContent');
+                pre.textContent = JSON.stringify(data, null, 2);
+                Prism.highlightElement(pre);
+            }
+
+            function updateStats(count, time) {
+                document.getElementById('docCount').textContent = count;
+                document.getElementById('execTime').textContent = `${time}ms`;
+            }
+
+            function exportData(format) {
+                if (!results.length) return showToast('No data to export', 'warning');
+
+                let data, mimeType;
+                if (format === 'csv') {
+                    data = convertToCSV(results);
+                    mimeType = 'text/csv';
+                } else {
+                    data = JSON.stringify(results, null, 2);
+                    mimeType = 'application/json';
+                }
+
+                const blob = new Blob([data], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `results.${format}`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast(`Exported as ${format.toUpperCase()}`);
+            }
+
+            function convertToCSV(data) {
+                const headers = Object.keys(data[0]);
+                const rows = data.map(row => 
+                    headers.map(field => 
+                        JSON.stringify(row[field], (_, val) => val ?? '')
+                    ).join(',')
+                );
+                return [headers.join(','), ...rows].join('\n');
+            }
+
+            function showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.style.display = 'block';
+                const errorColor = getComputedStyle(document.documentElement).getPropertyValue('--error');
+                const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+                toast.style.background = type === 'error' ? errorColor : primaryColor;
+                
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>

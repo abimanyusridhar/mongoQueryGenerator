@@ -1,70 +1,113 @@
 {
-    "metadata": {
-        "users": {
-            "fields": ["_id", "name", "email", "age", "created_at", "updated_at"],
-            "field_types": {
-                "_id": "ObjectId",
-                "name": "String",
-                "email": "String",
-                "age": "Integer",
-                "created_at": "Date",
-                "updated_at": "Date"
-            },
-            "total_documents": 1500,
-            "avg_document_size": 1.2,
-            "nullable_fields": ["updated_at"],
-            "indexes": [
-                { "name": "_id_", "fields": ["_id"] },
-                { "name": "email_unique", "fields": ["email"] }
-            ]
-        },
-        "orders": {
-            "fields": ["_id", "user_id", "order_date", "total_amount", "status", "products"],
-            "field_types": {
-                "_id": "ObjectId",
-                "user_id": "ObjectId",
-                "order_date": "Date",
-                "total_amount": "Decimal",
-                "status": "String",
-                "products": "Array"
-            },
-            "total_documents": 3500,
-            "avg_document_size": 2.5,
-            "nullable_fields": ["status"],
-            "indexes": [
-                { "name": "_id_", "fields": ["_id"] },
-                { "name": "user_id_index", "fields": ["user_id"] }
-            ]
-        }
+    "_id": {
+        "$oid": "52cdef7c4bab8bd675298291"
     },
-    "collections": {
-        "users": [
-            { "_id": "12345", "name": "John Doe", "email": "johndoe@example.com", "age": 28, "created_at": "2020-07-01T12:00:00Z", "updated_at": "2020-07-01T12:30:00Z" },
-            { "_id": "12346", "name": "Jane Smith", "email": "janesmith@example.com", "age": 35, "created_at": "2021-08-15T10:00:00Z", "updated_at": null },
-            { "_id": "12347", "name": "Alice Johnson", "email": "alice.johnson@example.com", "age": 42, "created_at": "2018-02-20T08:30:00Z", "updated_at": "2022-09-14T14:10:00Z" }
-        ],
-        "orders": [
-            {
-                "_id": "5f7d3e91e9b7c825b9c8d23f",
-                "user_id": "12345",
-                "order_date": "2023-11-01T12:45:00Z",
-                "total_amount": 149.99,
-                "status": "completed",
-                "products": [
-                    { "product_id": "001", "name": "Laptop", "quantity": 1, "price": 1200 },
-                    { "product_id": "002", "name": "Mouse", "quantity": 1, "price": 20 }
-                ]
-            },
-            {
-                "_id": "5f7d4e92e9b7c825b9c8d24a",
-                "user_id": "12346",
-                "order_date": "2022-10-01T15:30:00Z",
-                "total_amount": 79.99,
-                "status": "pending",
-                "products": [
-                    { "product_id": "003", "name": "Keyboard", "quantity": 1, "price": 79.99 }
-                ]
-            }
+    "acquisition": null,
+    "acquisitions": [],
+    "alias_list": null,
+    "blog_feed_url": "http://mobiance.wordpress.com/feed/",
+    "blog_url": "http://mobiance.wordpress.com/",
+    "category_code": "web",
+    "competitions": [],
+    "created_at": "Tue Feb 12 17:31:58 UTC 2008",
+    "crunchbase_url": "http://www.crunchbase.com/company/mobiance",
+    "deadpooled_day": null,
+    "deadpooled_month": null,
+    "deadpooled_url": null,
+    "deadpooled_year": null,
+    "description": null,
+    "email_address": "info@mobiance.com",
+    "external_links": [],
+    "founded_day": {
+        "$numberInt": "1"
+    },
+    "founded_month": {
+        "$numberInt": "10"
+    },
+    "founded_year": {
+        "$numberInt": "2004"
+    },
+    "funding_rounds": [],
+    "homepage_url": "http://www.mobiance.com",
+    "image": {
+        "attribution": null,
+        "available_sizes": [
+            [
+                [
+                    {
+                        "$numberInt": "150"
+                    },
+                    {
+                        "$numberInt": "43"
+                    }
+                ],
+                "assets/images/resized/0001/1859/11859v1-max-150x150.png"
+            ],
+            [
+                [
+                    {
+                        "$numberInt": "208"
+                    },
+                    {
+                        "$numberInt": "60"
+                    }
+                ],
+                "assets/images/resized/0001/1859/11859v1-max-250x250.png"
+            ],
+            [
+                [
+                    {
+                        "$numberInt": "208"
+                    },
+                    {
+                        "$numberInt": "60"
+                    }
+                ],
+                "assets/images/resized/0001/1859/11859v1-max-450x450.png"
+            ]
         ]
-    }
-}
+    },
+    "investments": [],
+    "ipo": null,
+    "milestones": [],
+    "name": "Mobiance",
+    "number_of_employees": {
+        "$numberInt": "5"
+    },
+    "offices": [
+        {
+            "address1": "BC-3, Atrium Business Center,",
+            "address2": "Coles Road, Frazer Town,",
+            "city": "Bangalore",
+            "country_code": "IND",
+            "description": null,
+            "latitude": null,
+            "longitude": null,
+            "state_code": null,
+            "zip_code": "560005"
+        }
+    ],
+    "overview": "<p>Mobiance provides the technology to track cell phones ...",
+    "partners": [],
+    "permalink": "mobiance",
+    "phone_number": "+91-80- 41264756",
+    "products": [],
+    "providerships": [],
+    "relationships": [
+        {
+            "is_past": true,
+            "person": {
+                "first_name": "Ritesh",
+                "last_name": "Ambastha",
+                "permalink": "ritesh-ambastha"
+            },
+            "title": "Product Manager"
+        }
+    ],
+    "screenshots": [],
+    "tag_list": null,
+    "total_money_raised": "$0",
+    "twitter_username": null,
+    "updated_at": "Thu Dec 01 07:37:10 UTC 2011",
+    "video_embeds": []
+  }

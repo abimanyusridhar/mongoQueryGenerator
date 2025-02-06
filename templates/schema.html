@@ -4,8 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Database Schema | DataSpeak</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* General Reset */
+        :root {
+            --primary: #2A9D8F;
+            --secondary: #264653;
+            --accent: #E9C46A;
+            --background: #F8F9FA;
+            --text: #343A40;
+            --success: #4CAF50;
+            --error: #E76F51;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,261 +25,657 @@
         }
 
         body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(120deg, #e0f7fa, #ffffff);
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
             min-height: 100vh;
             padding: 2rem;
         }
 
-        /* Header Section */
         .header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, var(--secondary), #1D3440);
+            color: white;
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #00796b;
-        }
-
-        .header p {
-            font-size: 1rem;
-            color: #555;
-            margin-top: 0.5rem;
-        }
-
-        /* Container for Schema Section */
         .container {
-            width: 100%;
-            max-width: 1200px;
-            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
 
-        /* Section Titles */
-        h2 {
-            font-size: 2rem;
-            color: #00796b;
-            margin-bottom: 1rem;
-            text-align: center;
-            border-bottom: 2px solid #00796b;
-            padding-bottom: 0.5rem;
+        .schema-section {
+            padding: 2.5rem;
         }
 
-        /* Schema Section Styles */
-        .schema-view {
-            background: #ffffff;
-            border-radius: 10px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .list-container {
+        .section-header {
             display: flex;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-            justify-content: center;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.75rem;
+            margin-top: 2rem;
         }
 
         .card {
-            background: #f8f9fa;
-            border: 1px solid #e3e6eb;
-            border-radius: 10px;
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 1rem;
             padding: 1.5rem;
-            flex: 1 1 300px;
-            max-width: 350px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: var(--transition);
             position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--primary);
+            transform: scaleX(0);
+            transition: var(--transition);
         }
 
         .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
         }
 
-        .card h3 {
-            color: #00796b;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            text-align: center;
+        .card:hover::before {
+            transform: scaleX(1);
         }
 
-        ul {
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .card-title i {
+            color: var(--primary);
+        }
+
+        .stats-badge {
+            background: rgba(42, 157, 143, 0.1);
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .stats-badge:hover {
+            background: rgba(42, 157, 143, 0.2);
+        }
+
+        .detail-list {
             list-style: none;
-            padding: 0;
+            margin-top: 1.25rem;
         }
 
-        ul li {
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
+        .detail-item {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--background);
+            border-radius: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
         }
 
-        ul li strong {
-            color: #2a4d70;
+        .detail-item:hover {
+            transform: translateX(5px);
         }
 
-        ul li em {
-            color: #0056b3;
-            font-style: normal;
+        .field-meta {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            font-size: 0.875rem;
+            color: #64748b;
         }
 
-        /* Tooltip Styles */
-        .tooltip {
+        .field-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            max-width: 100%;
+        }
+
+        .field-name {
             position: relative;
-            display: inline-block;
-            cursor: pointer;
-        }
-
-        .tooltip:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #444;
-            color: #fff;
-            padding: 6px 10px;
-            font-size: 0.85rem;
-            border-radius: 5px;
+            cursor: help;
+            border-bottom: 1px dashed #64748b;
+            margin: 0 0.25rem;
             white-space: nowrap;
         }
 
-        /* Footer Section */
-        .footer {
-            text-align: center;
+        .field-tooltip {
+            position: absolute;
+            background: var(--secondary);
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: var(--transition);
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .field-name:hover .field-tooltip {
+            opacity: 1;
+            top: 100%;
+        }
+
+        .relationship-badge {
+            background: rgba(233, 196, 106, 0.1);
+            color: #D4A017;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: var(--secondary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: var(--transition);
+            max-width: 300px;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .relationship-badge:hover .tooltip {
+            opacity: 1;
+            top: 100%;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            max-width: 800px;
+            margin: 2rem auto;
+            position: relative;
+            overflow-y: auto;
+            max-height: 90vh;
+            transform: translateY(-20px);
+            animation: slideUp 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); }
+            to { transform: translateY(0); }
+        }
+
+        .report-section {
+            margin-bottom: 2rem;
+        }
+
+        .report-section h4 {
+            color: var(--secondary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .report-table th {
+            background: var(--background);
+        }
+
+        .pdf-button {
+            background: var(--error);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .pdf-button:hover {
+            background: #D45335;
+        }
+
+        .modal-tools {
+            display: flex;
+            justify-content: space-between;
             margin-top: 2rem;
-            font-size: 0.9rem;
-            color: #888;
         }
 
-        .footer a {
-            color: #00796b;
-            text-decoration: none;
+        .storage-meter {
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
         }
 
-        .footer a:hover {
-            text-decoration: underline;
+        .storage-progress {
+            height: 100%;
+            background: var(--primary);
+            transition: var(--transition);
         }
 
-        /* Responsive Design */
         @media (max-width: 768px) {
-            .list-container {
-                flex-direction: column;
+            body {
+                padding: 1.5rem;
             }
 
-            .card {
-                flex: 1 1 100%;
-                max-width: none;  /* Ensure the cards take up full width */
+            .header {
+                padding: 2rem 1.5rem;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.5rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .navigation-buttons {
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
-
-    <!-- Header Section -->
     <header class="header">
-        <h1>DataSpeak: Database Schema Overview</h1>
-        <p>Explore the structure and insights of your database collections.</p>
+        <h1>DataSparK: Advanced Schema Analysis</h1>
+        <p>Comprehensive database structure visualization with real-time insights</p>
     </header>
 
-    <!-- Main Content -->
     <main class="container">
+        <section class="schema-section">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <i class="fas fa-database"></i>
+                    Database Schema Analysis
+                </h2>
+                <div class="action-buttons">
+                    <button id="explainSchemaBtn" class="stats-badge">
+                        <i class="fas fa-file-alt"></i>
+                        Generate Report
+                    </button>
+                    <a href="{{ url_for('download_report') }}" class="stats-badge" download>
+                        <i class="fas fa-download"></i>
+                        Export Report
+                    </a>
+                </div>
+            </div>
 
-        <!-- Database Overview -->
-        <section class="schema-view">
-            <h2>Database Overview</h2>
-            <ul>
-                <li><strong>Database Name:</strong> {{ db_details.name | default('Unknown') }}</li>
-                <li><strong>Total Collections:</strong> {{ db_details.collections_count | default('N/A') }}</li>
-                <li><strong>Size on Disk:</strong> {{ db_details.size_on_disk | default('N/A') }} bytes</li>
-            </ul>
-        </section>
-
-        <!-- Schema Section -->
-        <section class="schema-view">
-            <h2>Database Schema</h2>
             {% if schema %}
-            <div class="list-container">
+            <div class="grid">
                 {% for collection, details in schema.items() %}
-                <div class="card">
-                    <h3>{{ collection }}</h3>
-                    <ul>
-                        <li><strong>Total Documents:</strong> {{ details.total_documents | default('0') }}</li>
-                        <li><strong>Avg Document Size:</strong> {{ details.avg_document_size | default('N/A') }} KB</li>
-                        <li><strong>Collection Size:</strong> {{ details.get('collection_size', 'N/A') }} bytes</li>
-                        <li><strong>Fields:</strong>
-                            {% if details.fields %}
-                            <ul>
-                                {% for field in details.fields %}
-                                <li>{{ field }}</li>
-                                {% endfor %}
-                            </ul>
-                            {% else %}
-                            <em>No fields found</em>
-                            {% endif %}
+                <article class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-table"></i>
+                            {{ collection }}
+                        </h3>
+                        <span class="stats-badge">
+                            <i class="fas fa-file"></i>
+                            {{ details.total_documents | default('N/A', true) }}
+                        </span>
+                    </div>
+
+                    <ul class="detail-list">
+                        <li class="detail-item">
+                            <span>Storage</span>
+                            <div class="field-meta">
+                                <span class="data-badge">
+                                    {{ "{:.2f}".format(details.collection_size | default(0, true)) }}MB
+                                </span>
+                                <span class="data-badge">
+                                    {{ "{:.2f}".format(details.avg_document_size | default(0, true)) }}KB/avg
+                                </span>
+                            </div>
                         </li>
-                        <li><strong>Indexes:</strong>
-                            {% if details.indexes %}
-                            <ul>
-                                {% for index in details.indexes %}
-                                <li class="tooltip" data-tooltip="{{ index.fields | join(', ') }}">{{ index.name }}</li>
-                                {% endfor}
-                            </ul>
-                            {% else %}
-                            <em>No indexes defined</em>
-                            {% endif %}
+
+                        <li class="detail-item">
+                            <span>Fields</span>
+                            <div class="field-meta">
+                                {% if details.fields %}
+                                <div class="field-list">
+                                    {% for field in details.fields %}
+                                    <span class="field-name">
+                                        {{ field }}
+                                        <span class="field-tooltip">
+                                            Type: {{ details.field_details[field]['type'] | default('unknown') }}
+                                        </span>
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span>No fields detected</span>
+                                {% endif %}
+                            </div>
+                        </li>
+
+                        <li class="detail-item">
+                            <span>Indexes</span>
+                            <div class="field-meta">
+                                {% if details.indexes %}
+                                <div class="indexes-list">
+                                    {% for index in details.indexes %}
+                                    <span class="index-item">
+                                        <i class="fas fa-index"></i>
+                                        {{ index.name }}
+                                    </span>
+                                    {% endfor %}
+                                </div>
+                                {% else %}
+                                <span>No active indexes</span>
+                                {% endif %}
+                            </div>
+                        </li>
+
+                        <li class="detail-item">
+                            <span>Relationships</span>
+                            <div class="field-meta">
+                                {% set rel_count = relationships.get(collection, []) | length %}
+                                {% if rel_count > 0 %}
+                                <span class="relationship-badge">
+                                    <i class="fas fa-link"></i>
+                                    {{ rel_count }} Connections
+                                    <span class="tooltip">
+                                        {% for rel in relationships.get(collection, []) %}
+                                        • {{ rel.from_collection }} ({{ rel.from_db }})<br>
+                                        {% endfor %}
+                                    </span>
+                                </span>
+                                {% else %}
+                                <span>No relationships found</span>
+                                {% endif %}
+                            </div>
                         </li>
                     </ul>
-                </div>
+                </article>
                 {% endfor %}
             </div>
             {% else %}
-            <p>No collections found in the database.</p>
-            {% endif %}
-        </section>
-
-        <!-- Model Relationships Section -->
-        <section class="schema-view">
-            <h2>Model Relationships</h2>
-            {% if relationships %}
-            <div class="list-container">
-                {% for model, details in relationships.items() %}
-                <div class="card">
-                    <h3>{{ model }}</h3>
-                    <ul>
-                        {% for relation in details %}
-                        <li>
-                            <strong>{{ relation.field }}</strong> 
-                            <span class="tooltip" data-tooltip="{{ relation.referenced_id }}">↔</span> 
-                            <em>{{ relation.from_collection }}</em>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endfor %}
+            <div class="empty-state">
+                <i class="fas fa-database fa-3x"></i>
+                <h3>No Schema Data Available</h3>
+                <p>Please check your database connection settings</p>
             </div>
-            {% else %}
-            <p>No relationships found in the database.</p>
             {% endif %}
-        </section>
 
+            <div class="navigation-buttons">
+                <a href="{{ url_for('login') }}" class="nav-button">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Login
+                </a>
+                <a href="{{ url_for('nlp_query') }}" class="nav-button">
+                    Continue to NLP Query
+                    <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </section>
     </main>
 
-    <!-- Footer Section -->
-    <footer class="footer">
-        © 2024 <a href="#">DataSpeak</a> - NLP-Driven Database Insights
-    </footer>
+    <div id="summaryModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">×</button>
+            <h3 class="modal-title">
+                <i class="fas fa-file-contract"></i>
+                Schema Analysis Report
+            </h3>
+            <div id="reportContent" class="report-content"></div>
+            <div class="modal-tools">
+                <button class="pdf-button" id="pdfButton">
+                    <i class="fas fa-file-pdf"></i>
+                    Download PDF
+                </button>
+                <button class="modal-close nav-button">
+                    Close Report
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <!-- CSRF Token -->
-    <form method="POST" style="display: none;">
-        {% csrf_token %}
-    </form>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.17/jspdf.plugin.autotable.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('summaryModal');
+            const closeModal = document.querySelector('.modal-close');
+            const explainSchemaBtn = document.getElementById('explainSchemaBtn');
+            const pdfButton = document.getElementById('pdfButton');
+
+            // Enhanced tooltip initialization
+            document.querySelectorAll('.relationship-badge, .field-name').forEach(element => {
+                element.addEventListener('mouseenter', () => {
+                    const tooltip = element.querySelector('.tooltip, .field-tooltip');
+                    if (tooltip) {
+                        const rect = element.getBoundingClientRect();
+                        tooltip.style.left = `${rect.width / 2}px`;
+                        tooltip.style.opacity = '1';
+                    }
+                });
+
+                element.addEventListener('mouseleave', () => {
+                    const tooltip = element.querySelector('.tooltip, .field-tooltip');
+                    if (tooltip) {
+                        tooltip.style.opacity = '0';
+                    }
+                });
+            });
+
+            // Modal controls with animations
+            explainSchemaBtn.addEventListener('click', async () => {
+                modal.style.display = 'block';
+                const content = await generateReport();
+                document.getElementById('reportContent').innerHTML = content;
+            });
+
+            closeModal.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // Enhanced report generation
+            async function generateReport() {
+                const cards = Array.from(document.querySelectorAll('.card'));
+                let reportHTML = `
+                    <div class="report-section">
+                        <h4><i class="fas fa-database"></i> Database Overview</h4>
+                        <div class="storage-meter">
+                            <div class="storage-progress" style="width: ${calculateStoragePercentage()}%"></div>
+                        </div>
+                        <p>Total Collections: ${cards.length}</p>
+                    </div>`;
+
+                cards.forEach(card => {
+                    const title = card.querySelector('.card-title').textContent.trim();
+                    const fields = Array.from(card.querySelectorAll('.field-name')).map(f => f.textContent.trim());
+                    const indexes = Array.from(card.querySelectorAll('.index-item')).map(i => i.textContent.trim());
+                    const relationships = card.querySelector('.relationship-badge')?.textContent.trim() || 'None';
+
+                    reportHTML += `
+                        <div class="report-section">
+                            <h4><i class="fas fa-table"></i> ${title}</h4>
+                            <table class="report-table">
+                                <tr>
+                                    <th>Fields (${fields.length})</th>
+                                    <th>Indexes</th>
+                                    <th>Relationships</th>
+                                </tr>
+                                <tr>
+                                    <td>${fields.join(', ')}</td>
+                                    <td>${indexes.join(', ') || 'None'}</td>
+                                    <td>${relationships}</td>
+                                </tr>
+                            </table>
+                        </div>`;
+                });
+
+                return reportHTML;
+            }
+
+            function calculateStoragePercentage() {
+                // Example calculation - replace with real data
+                return Math.min(100, Math.floor(Math.random() * 80) + 20);
+            }
+
+            // PDF Generation function
+            pdfButton.addEventListener('click', generatePDF);
+
+            function generatePDF() {
+                if (!window.jspdf) {
+                    console.error('jsPDF library not loaded');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                const title = "Database Schema Report";
+                const date = new Date().toLocaleDateString();
+
+                // Add title
+                doc.setFontSize(18);
+                doc.text(title, 15, 20);
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(`Generated: ${date}`, 15, 28);
+
+                // Add content
+                let yPosition = 40;
+                document.querySelectorAll('.report-section').forEach(section => {
+                    const title = section.querySelector('h4').textContent;
+                    const content = section.querySelector('table') ?
+                        Array.from(section.querySelectorAll('tr')).map(row =>
+                            Array.from(row.children).map(cell => cell.textContent)
+                        ) : section.textContent;
+
+                    doc.setFontSize(14);
+                    doc.setTextColor(40);
+                    doc.text(title, 15, yPosition);
+                    yPosition += 10;
+
+                    if (Array.isArray(content)) {
+                        doc.autoTable({
+                            startY: yPosition,
+                            head: [content[0]], // Ensure the header is an array of arrays
+                            body: content.slice(1),
+                            theme: 'grid',
+                            styles: { fontSize: 10 }
+                        });
+                        yPosition = doc.autoTable.previous.finalY + 10;
+                    } else {
+                        doc.setFontSize(12);
+                        doc.setTextColor(80);
+                        doc.text(content, 15, yPosition);
+                        yPosition += 20;
+                    }
+
+                    if (yPosition > 280) {
+                        doc.addPage();
+                        yPosition = 20;
+                    }
+                });
+
+                doc.save(`schema-report-${date}.pdf`);
+            }
+        });
+    </script>
 </body>
 </html>

@@ -1,224 +1,246 @@
-from pymongo import MongoClient
-import os
+import csv
 import json
 import logging
-from typing import Optional, Dict, Any
+import os
+import re
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, Generator, List, Tuple
+from pymongo import InsertOne, MongoClient, errors
+from dotenv import load_dotenv
+from tqdm import tqdm
+import ijson
+from tenacity import retry, stop_after_attempt, wait_exponential
+import bson
 
-# Initialize logging
+# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-client = None  # Global MongoDB client object
+# Precompiled regex patterns
+_COLLECTION_NAME_SANITIZE_PATTERN = re.compile(r'[^\w-]')
+_INT_PATTERN = re.compile(r'^[-+]?\d+$')
+_FLOAT_PATTERN = re.compile(r'^[-+]?(\d+\.\d*|\.\d+)([eE][-+]?\d+)?$')
+mongo_client = None
 
-def connect_to_db(db_details: Dict[str, Any]) -> bool:
-    """
-    Connect to a MongoDB database or process data from a JSON file.
 
-    Parameters:
-    db_details (dict): Connection details:
-        - 'type': must be 'mongodb' or 'json'
-        - 'host': MongoDB host (default 'localhost') (only for 'mongodb')
-        - 'port': MongoDB port (default 27017) (only for 'mongodb')
-        - 'database': Name of the database (only for 'mongodb')
-        - 'file_path': Path to the JSON file (only for 'json')
-
-    Returns:
-    bool: True if the connection or processing is successful, False otherwise.
-    """
+@contextmanager
+def get_mongo_client_with_context(db_details: Dict[str, Any]) -> Iterator[MongoClient]:
+    client = None
     try:
-        db_type = db_details.get('type')
-
-        if db_type == 'mongodb':
-            return connect_to_mongodb(db_details)
-        elif db_type == 'json':
-            file_path = db_details.get('file_path')
-            if not file_path:
-                raise ValueError("File path must be provided for JSON data.")
-            return process_json_file(file_path)
-        else:
-            raise ValueError("Unsupported database type. Choose 'mongodb' or 'json'.")
-
+        client = MongoClient(
+            host=db_details['host'],
+            port=db_details['port'],
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=30000,
+            maxPoolSize=100,
+            minPoolSize=10
+        )
+        # Check connection by pinging the server
+        client.admin.command('ping')  # Removed try-except here as it's redundant with the broader try-except
+        yield client
+    except errors.ServerSelectionTimeoutError as e:
+        logger.error(f"MongoDB connection timeout: {e}")
+        raise
+    except errors.ConnectionFailure as e:
+        logger.error(f"MongoDB connection failed: {e}")
+        raise
     except Exception as e:
-        logging.error(f"Error in `connect_to_db`: {e}")
-        return False
-
-def connect_to_mongodb(db_details: Dict[str, Any]) -> bool:
-    """
-    Connect to a MongoDB instance.
-
-    Parameters:
-    db_details (dict): MongoDB connection details.
-
-    Returns:
-    bool: True if connected successfully, False otherwise.
-    """
-    global client
-    try:
-        host = db_details.get('host', 'localhost')
-        port = db_details.get('port', 27017)
-        database = db_details.get('database')
-
-        if not database:
-            raise ValueError("Database name is required for MongoDB connection.")
-
-        client = MongoClient(host=host, port=port)
-        client.admin.command('ping')  # Test the connection
-        logging.info(f"Connected to MongoDB server at {host}:{port}")
-        logging.info(f"Connected to database: {database}")
-
-        # Optional: Log collections and their document counts
-        db = client[database]
-        collections = db.list_collection_names()
-        logging.info(f"Found {len(collections)} collections in the database.")
-        for collection in collections:
-            count = db[collection].count_documents({})
-            logging.info(f"Collection '{collection}' has {count} documents.")
-
-        return True
-
-    except Exception as e:
-        logging.error(f"MongoDB Connection Error: {e}")
+        logger.error(f"Unexpected error while connecting to MongoDB: {e}")
+        raise
+    finally:
         if client:
-            client.close()  # Close the client if an error occurs
-        return False
+            try:
+                client.close()
+            except Exception as e:
+                logger.warning(f"Failed to close MongoDB connection: {e}")
 
-def process_json_file(file_path: str) -> bool:
-    """
-    Process and load data from a JSON file.
+def sanitize_collection_name(name: str) -> str:
+    return _COLLECTION_NAME_SANITIZE_PATTERN.sub('_', name).strip('_')[:63]
 
-    Parameters:
-    file_path (str): Path to the .json file.
+def convert_csv_types(row: Dict[str, str]) -> Dict[str, Any]:
+    converted = {}
+    for key, value in row.items():
+        value = value.strip()
+        if not value:
+            converted[key] = None
+            continue
 
-    Returns:
-    bool: True if processed successfully, False otherwise.
-    """
-    try:
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
-        if not file_path.endswith('.json'):
-            raise ValueError("Unsupported file type. Only .json files are allowed.")
+        if value[0] in ('{', '[') and value[-1] in ('}', ']'):
+            try:
+                converted[key] = json.loads(value)
+            except json.JSONDecodeError:
+                logger.warning(f"Failed to decode JSON for key {key}: {value}")
+                converted[key] = value
+            continue
 
-        # Load JSON content
-        with open(file_path, 'r', encoding='utf-8') as file:
-            data = json.load(file)
+        lower_val = value.lower()
+        if lower_val in ('true', 'false'):
+            converted[key] = lower_val == 'true'
+            continue
 
-        if not isinstance(data, dict):
-            raise ValueError("Invalid JSON format. Root element must be a JSON object.")
-
-        total_docs = 0
-        unique_fields = set()
-        for collection_name, collection_data in data.items():
-            if not isinstance(collection_data, list):
-                raise ValueError(f"Collection '{collection_name}' must be a list of documents.")
-
-            logging.info(f"Loaded collection '{collection_name}' with {len(collection_data)} documents.")
-            total_docs += len(collection_data)
-            for doc in collection_data:
-                unique_fields.update(doc.keys())
-
-        logging.info(f"Processed {len(data)} collections with a total of {total_docs} documents.")
-        logging.info(f"Unique fields across collections: {len(unique_fields)}")
-        return True
-
-    except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
-        logging.error(f"Error processing JSON file '{file_path}': {e}")
-        return False
-    except Exception as e:
-        logging.error(f"Unexpected error: {e}")
-        return False
-
-def get_connection() -> Optional[MongoClient]:
-    """
-    Get the active MongoDB client.
-
-    Returns:
-    Optional[MongoClient]: The MongoDB client object if connected, otherwise None.
-    """
-    global client
-    if client:
-        return client
-    else:
-        logging.warning("No active MongoDB connection. Use `connect_to_db` to establish a connection.")
-        return None
-
-def generate_schema(db) -> Dict[str, Any]:
-    """
-    Generate a schema for the MongoDB database.
-
-    Parameters:
-    db (Database): MongoDB database object.
-
-    Returns:
-    dict: Schema containing collection names, fields, sample data, and statistics.
-    """
-    schema = {}
-    try:
-        for collection_name in db.list_collection_names():
-            collection = db[collection_name]
-            sample_data = collection.find_one() or {}
-            total_documents = collection.count_documents({})
-
-            # Get average document size
-            avg_document_size_cursor = collection.aggregate([{
-                "$group": {"_id": None, "avgSize": {"$avg": {"$bsonSize": "$$ROOT"}}}
-            }])
-            avg_document_size = next(avg_document_size_cursor, {}).get("avgSize", 0) / 1024  # Convert bytes to KB
-
-            # Collect indexes
-            indexes = collection.index_information()
-            index_info = [{"name": index, "fields": list(info["key"].items())} for index, info in indexes.items()]
-
-            # Identify nullable fields
-            nullable_fields = [field for field, value in sample_data.items() if value is None]
-
-            schema[collection_name] = {
-                "fields": list(sample_data.keys()),
-                "sample": sample_data,
-                "total_documents": total_documents,
-                "avg_document_size": avg_document_size,
-                "nullable_fields": nullable_fields,
-                "indexes": index_info,
-            }
-
-        logging.info("Schema generation successful.")
-        return schema
-
-    except Exception as e:
-        logging.error(f"Error generating schema: {e}")
-        return {}
-
-# Workflow Example
-if __name__ == "__main__":
-    # MongoDB connection example
-    mongodb_details = {
-        "type": "mongodb",
-        "host": "localhost",
-        "port": 27017,
-        "database": "test_db"
-    }
-
-    if connect_to_db(mongodb_details):
-        logging.info("MongoDB connection successful. Proceeding with further operations.")
-        db = get_connection()[mongodb_details["database"]]
-        schema = generate_schema(db)
-        if schema:
-            logging.info(f"Generated schema: {json.dumps(schema, indent=2)}")
+        if _INT_PATTERN.match(value):
+            converted[key] = int(value)
+        elif _FLOAT_PATTERN.match(value):
+            converted[key] = float(value)
         else:
-            logging.error("Schema generation failed.")
-    else:
-        logging.error("Failed to connect to MongoDB.")
+            converted[key] = value
+    return converted
 
-    # JSON file processing example
-    json_details = {
-        "type": "json",
-        "file_path": "example.json"
+def process_file(file_path: str, db_name: str, db_details: Dict[str, Any]) -> Tuple[bool, str]:
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == '.csv':
+        return _process_csv_streaming(file_path, db_name, db_details)
+    elif ext == '.json':
+        return _process_json_streaming(file_path, db_name, db_details)
+    else:
+        return False, f"Unsupported file type: {ext}"
+
+def _process_csv_streaming(csv_path: str, db_name: str, db_details: Dict[str, Any]) -> Tuple[bool, str]:
+    try:
+        if not os.path.exists(csv_path):
+            return False, "File not found"
+
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            total_rows = sum(1 for _ in csv.reader(f)) - 1
+
+        collection_name = sanitize_collection_name(os.path.splitext(os.path.basename(csv_path))[0])
+
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            return _process_generator(
+                data_generator=(convert_csv_types(row) for row in reader),
+                db_name=db_name,
+                collection_name=collection_name,
+                db_details=db_details,
+                total=total_rows
+            )
+
+    except Exception as e:
+        logger.error(f"CSV processing failed: {str(e)}", exc_info=True)
+        return False, f"CSV error: {str(e)}"
+
+def _process_json_streaming(json_path: str, db_name: str, db_details: Dict[str, Any]) -> Tuple[bool, str]:
+    try:
+        if not os.path.exists(json_path):
+            return False, "File not found"
+
+        with open(json_path, 'r', encoding='utf-8') as f:
+            first_char = f.read(1)
+            f.seek(0)
+
+            if first_char == '[':
+                collection_name = sanitize_collection_name(os.path.splitext(os.path.basename(json_path))[0])
+                items = ijson.items(f, 'item')
+                return _process_generator(
+                    data_generator=items,
+                    db_name=db_name,
+                    collection_name=collection_name,
+                    db_details=db_details
+                )
+            elif first_char == '{':
+                return _process_json_collections(f, db_name, db_details)
+            else:
+                return False, "Unsupported JSON structure"
+
+    except Exception as e:
+        logger.error(f"JSON processing failed: {str(e)}", exc_info=True)
+        return False, f"JSON error: {str(e)}"
+
+def _process_json_collections(file_handler, db_name: str, db_details: Dict[str, Any]) -> Tuple[bool, str]:
+    success = True
+    messages = []
+    try:
+        collections = ijson.kvitems(file_handler, '')
+        for collection_name, items in collections:
+            valid_name = sanitize_collection_name(collection_name)
+            s, msg = _process_generator(
+                data_generator=items,
+                db_name=db_name,
+                collection_name=valid_name,
+                db_details=db_details
+            )
+            messages.append(f"{valid_name}: {msg}")
+            success &= s
+        return success, " | ".join(messages)
+    except Exception as e:
+        return False, f"Collection processing error: {str(e)}"
+
+def _process_generator(data_generator: Generator[Dict, None, None], db_name: str,
+                      collection_name: str, db_details: Dict[str, Any],
+                      total: int = None) -> Tuple[bool, str]:
+    try:
+        with get_mongo_client_with_context(db_details) as client:
+            db = client[db_name]
+            collection = db[collection_name]
+
+            batch = []
+            total_inserted = 0
+            batch_size = 5000
+            max_batch_size = 15000
+            batch_size_bytes = 0
+            max_batch_bytes = 12 * 1024 * 1024
+
+            with tqdm(total=total, desc=f"Inserting to {collection_name}") as pbar:
+                for doc in data_generator:
+                    doc_size = len(bson.BSON.encode(doc))
+
+                    if batch_size_bytes + doc_size > max_batch_bytes or len(batch) >= batch_size:
+                        inserted = _insert_batch_with_retry(collection, batch)
+                        total_inserted += inserted
+                        pbar.update(len(batch))
+
+                        if inserted == len(batch):
+                            batch_size = min(batch_size * 2, max_batch_size)
+                        else:
+                            batch_size = max(batch_size // 2, 1000)
+
+                        batch = []
+                        batch_size_bytes = 0
+
+                    batch.append(doc)
+                    batch_size_bytes += doc_size
+
+                if batch:
+                    inserted = _insert_batch_with_retry(collection, batch)
+                    total_inserted += inserted
+                    pbar.update(len(batch))
+
+            logger.info(f"Inserted {total_inserted} documents into {collection_name}")
+            return True, f"Inserted {total_inserted} documents"
+
+    except errors.ServerSelectionTimeoutError as e:
+        logger.error(f"Could not connect to server for collection {collection_name}: {e}")
+        return False, f"Server selection timeout error: {str(e)}"
+    except errors.OperationFailure as e:
+        logger.error(f"Operation failed in collection {collection_name}: {e}")
+        return False, f"MongoDB operation error: {str(e)}"
+    except Exception as e:
+        logger.error(f"Processing failed for collection {collection_name}: {str(e)}", exc_info=True)
+        return False, f"General processing error: {str(e)}"
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
+def _insert_batch_with_retry(collection, batch: List[Dict]) -> int:
+    try:
+        result = collection.bulk_write(
+            [InsertOne(doc) for doc in batch],
+            ordered=False,
+            bypass_document_validation=True
+        )
+        return result.inserted_count
+    except errors.BulkWriteError as e:
+        logger.warning(f"Bulk write error in collection {collection.name}: {e.details}")
+        return e.details['nInserted']
+    except Exception as e:
+        logger.error(f"Unexpected error during batch insert: {e}")
+        raise
+
+def get_connection_details() -> Dict[str, Any]:
+    load_dotenv()
+    details = {
+        'host': os.getenv('MONGO_HOST', 'localhost'),
+        'port': int(os.getenv('MONGO_PORT', '27017'))
     }
-
-    if connect_to_db(json_details):
-        logging.info("JSON file processed successfully.")
-    else:
-        logging.error("Failed to process the JSON file.")
-
-    # Ensure to close the MongoDB connection
-    if client:
-        client.close()
-        logging.info("MongoDB connection closed.")
+    if not all(details.values()):
+        raise ValueError("Required environment variables MONGO_HOST or MONGO_PORT are missing.")
+    return details

@@ -1,0 +1,38 @@
+{
+    "users": [
+      {
+        "_id": "user_001",
+        "name": "Alice Johnson",
+        "email": "alice@example.com",
+        "age": 30,
+        "interests": ["reading", "hiking", "photography"],
+        "isActive": true,
+        "registrationDate": "2023-01-01T00:00:00Z"
+      },
+      {
+        "_id": "user_002",
+        "name": "Bob Smith",
+        "email": "bob@example.com",
+        "age": 25,
+        "interests": ["gaming", "music", "cycling"],
+        "isActive": false,
+        "registrationDate": "2023-05-15T00:00:00Z"
+      }
+    ],
+    "transactions": [
+      {
+        "_id": "txn_001",
+        "userId": "user_001",
+        "amount": 150.50,
+        "date": "2023-02-10T15:30:00Z",
+        "type": "purchase"
+      },
+      {
+        "_id": "txn_002",
+        "userId": "user_002",
+        "amount": 75.25,
+        "date": "2023-06-01T09:45:00Z",
+        "type": "refund"
+      }
+    ]
+  }

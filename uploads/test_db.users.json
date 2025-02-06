@@ -1,0 +1,20 @@
+[{
+  "_id": {
+    "$oid": "64d2f66a2a12f8b5f22f6b9e"
+  },
+  "name": "John Doe",
+  "email": "john.doe@example.com",
+  "age": 30,
+  "address": "123 Elm Street",
+  "is_active": true
+},
+{
+  "_id": {
+    "$oid": "64d2f66a2a12f8b5f22f6b9f"
+  },
+  "name": "Jane Smith",
+  "email": "jane.smith@example.com",
+  "age": 28,
+  "address": "456 Oak Street",
+  "is_active": false
+}]

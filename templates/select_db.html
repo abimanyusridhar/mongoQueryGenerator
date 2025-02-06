@@ -3,318 +3,573 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select Database | DataSpeak</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>DataSpark | MongoDB Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* General Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary: #2D7A7D;
+            --primary-hover: #235F61;
+            --background: #F0F9FA;
+            --error: #D32F2F;
+            --success: #388E3C;
+            --accent: #FFAB40;
+            --text: #2D3436;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: 'Roboto', sans-serif;
-            background: linear-gradient(120deg, #e0f7fa, #ffffff);
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            background: var(--background);
+            color: var(--text);
             min-height: 100vh;
+            display: grid;
+            grid-template-rows: auto 1fr auto;
             padding: 2rem;
         }
 
-        /* Header Section */
         .header {
             text-align: center;
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
+            position: relative;
+            padding: 2rem 0;
         }
 
         .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #00796b;
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .header h1 i {
+            color: var(--accent);
+            font-size: 1.2em;
         }
 
         .header p {
-            font-size: 1rem;
-            color: #555;
-            margin-top: 0.5rem;
+            color: #666;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        /* Form Styles */
-        form {
-            width: 100%;
-            max-width: 600px;
-            background: #fff;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .radio-card {
+            background: #F8F9FA;
+            border: 2px solid #E9ECEF;
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .radio-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px rgba(45, 122, 125, 0.1);
+        }
+
+        .radio-card.selected {
+            border-color: var(--primary);
+            background: linear-gradient(135deg, #E6F4F4 0%, #F0F9FA 100%);
+        }
+
+        .radio-card h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .radio-card i {
+            font-size: 1.5rem;
+            color: var(--accent);
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+            position: relative;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
-            font-size: 1rem;
-            font-weight: 500;
+            margin-bottom: 1rem;
+            font-weight: 600;
             color: #444;
+            position: relative;
+            padding-left: 1.5rem;
         }
 
-        input[type="text"],
-        input[type="number"],
-        input[type="file"] {
+        label::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+            line-height: 1;
+            top: 0.1rem;
+        }
+
+        .input-field {
             width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            border: 2px solid #E0E0E0;
+            border-radius: 10px;
             font-size: 1rem;
-            margin-top: 4px;
-            margin-bottom: 1.5rem;
-            background: #fafafa;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            background: white;
         }
 
-        input[type="text"]:focus,
-        input[type="number"]:focus,
-        input[type="file"]:focus {
-            border-color: #00796b;
-            outline: none;
-            box-shadow: 0 0 8px rgba(0, 121, 107, 0.2);
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(45, 122, 125, 0.15);
+            padding-left: 2rem;
         }
 
-        .radio-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
+        .file-upload-wrapper {
+            position: relative;
+            border: 2px dashed #E0E0E0;
+            border-radius: 10px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
         }
 
-        .radio-group label {
+        .file-upload-wrapper:hover {
+            border-color: var(--primary);
+            background: rgba(45, 122, 125, 0.03);
+        }
+
+        .file-upload-wrapper.dragover {
+            border-color: var(--primary);
+            background: rgba(45, 122, 125, 0.05);
+        }
+
+        .file-preview {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #F8F9FA;
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            background: #f1f8e9;
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid #dcedc8;
-            cursor: pointer;
-            transition: all 0.3s;
+            gap: 1rem;
         }
 
-        .radio-group input[type="radio"] {
+        .file-preview i {
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #EEE;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 1.5rem;
             display: none;
         }
 
-        .radio-group label:hover {
-            background: #c8e6c9;
-        }
-
-        .radio-group input[type="radio"]:checked + label {
-            background: #00796b;
-            color: #fff;
-        }
-
-        .error-message {
-            font-size: 0.85rem;
-            color: #d32f2f;
-            margin-top: -1rem;
-            margin-bottom: 1rem;
-            display: none;
-        }
-
-        .success-message {
-            font-size: 0.95rem;
-            color: #388e3c;
-            text-align: center;
-            margin-top: 1rem;
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #3A9A9D);
+            width: 0;
+            transition: width 0.4s ease;
         }
 
         button {
-            width: 100%;
-            padding: 14px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #fff;
-            background-color: #00796b;
+            padding: 1.2rem 2rem;
+            background: var(--primary);
+            color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            width: 100%;
         }
 
         button:hover {
-            background-color: #004d40;
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(45, 122, 125, 0.2);
         }
 
         button:disabled {
-            background-color: #bdbdbd;
-            cursor: not-allowed;
+            background: #B0BEC5;
+            transform: none;
+            box-shadow: none;
         }
 
-        /* Tooltip Styles */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
+        .loading-spinner {
+            display: none;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
         }
 
-        .tooltip:hover::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: -30px;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            position: fixed;
+            top: 2rem;
             left: 50%;
             transform: translateX(-50%);
-            background: #444;
-            color: #fff;
-            padding: 6px 10px;
-            font-size: 0.85rem;
-            border-radius: 5px;
-            white-space: nowrap;
+            padding: 1.2rem 2rem;
+            border-radius: 8px;
+            display: none;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
         }
 
-        /* Footer Section */
-        .footer {
-            text-align: center;
-            margin-top: 2rem;
-            font-size: 0.9rem;
-            color: #888;
+        @keyframes slideIn {
+            from { top: -100px; }
+            to { top: 2rem; }
         }
 
-        .footer a {
-            color: #00796b;
-            text-decoration: none;
+        .status-message i {
+            font-size: 1.2rem;
         }
 
-        .footer a:hover {
-            text-decoration: underline;
-        }
+        .error { background: #FFEBEE; color: var(--error); }
+        .success { background: #E8F5E9; color: var(--success); }
 
-        /* Animations */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
+        @media (max-width: 768px) {
+            body { padding: 1.5rem; }
+            
+            .header h1 {
+                font-size: 2.2rem;
+                flex-direction: column;
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
 
-        form {
-            animation: fadeIn 0.8s ease-in-out;
+            .form-container {
+                padding: 1.5rem;
+            }
+
+            .radio-group {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-
-    <!-- Header Section -->
     <header class="header">
-        <h1>DataSpeak: Select a Database</h1>
-        <p>Choose your preferred database configuration method below.</p>
+        <h1><i class="fas fa-database"></i>DataSpark</h1>
+        <p>Connect to MongoDB or upload data files with intelligent processing</p>
     </header>
 
-    <form id="dbForm" method="POST" enctype="multipart/form-data">
-        <!-- CSRF Token -->
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    
-        <div class="radio-group">
-            <!-- MongoDB Configuration -->
-            <div class="tooltip" data-tooltip="Fill these fields to connect to MongoDB.">
-                <input type="radio" name="db_type" value="mongodb" id="mongodb" required>
-                <label for="mongodb">Connect to MongoDB</label>
+    <main class="form-container">
+        <form id="dbForm" method="POST" enctype="multipart/form-data">
+            <!-- CSRF Token from Flask-WTF -->
+            {{ form.csrf_token }}
+            
+            <div class="radio-group">
+                <label class="radio-card">
+                    <input type="radio" name="operation" value="connect" checked>
+                    <div>
+                        <h3><i class="fas fa-plug"></i>Connect to DB</h3>
+                        <p>Existing MongoDB connection</p>
+                    </div>
+                </label>
+                <label class="radio-card">
+                    <input type="radio" name="operation" value="csv">
+                    <div>
+                        <h3><i class="fas fa-file-csv"></i>Upload CSV</h3>
+                        <p>Smart type conversion & validation</p>
+                    </div>
+                </label>
+                <label class="radio-card">
+                    <input type="radio" name="operation" value="json">
+                    <div>
+                        <h3><i class="fas fa-file-code"></i>Upload JSON</h3>
+                        <p>Complex structure parsing</p>
+                    </div>
+                </label>
             </div>
-    
-            <!-- JSON File Upload -->
-            <div class="tooltip" data-tooltip="Upload a valid JSON file.">
-                <input type="radio" name="db_type" value="json" id="json" required>
-                <label for="json">Upload JSON File</label>
-            </div>
-        </div>
-    
-        <label for="host">Host:</label>
-        <input type="text" name="host" id="host" placeholder="e.g., localhost" aria-describedby="hostTooltip" disabled>
-        <div id="hostTooltip" class="tooltip">Enter the host address (e.g., localhost).</div>
-    
-        <label for="port">Port:</label>
-        <input type="number" name="port" id="port" placeholder="e.g., 27017" aria-describedby="portTooltip" disabled>
-        <div id="portTooltip" class="tooltip">Enter the port number (e.g., 27017).</div>
-    
-        <label for="database">Database Name:</label>
-        <input type="text" name="database" id="database" placeholder="e.g., my_database" aria-describedby="databaseTooltip" disabled>
-        <div id="databaseTooltip" class="tooltip">Enter the database name.</div>
-    
-        <label for="db_file">Choose File:</label>
-        <input type="file" name="db_file" id="db_file" accept=".json" aria-describedby="fileTooltip" disabled>
-        <div id="fileTooltip" class="tooltip">Upload a valid JSON file.</div>
-    
-        <div class="error-message" id="mongodbError">Please fill out all MongoDB fields.</div>
-        <div class="error-message" id="jsonError">Please upload a valid JSON file.</div>
-    
-        <button type="submit" id="submitButton" disabled>Connect</button>
-        <div class="success-message" id="successMessage" aria-live="polite"></div>
-    </form>
 
-    <!-- Footer Section -->
+            <!-- Connect to DB Form -->
+            <div class="form-group" data-operation="connect">
+                <label for="connectDatabase">Database Name</label>
+                <input type="text" id="connectDatabase" name="database" class="input-field" placeholder="my_database" required>
+            </div>
+
+            <!-- CSV Upload Form -->
+            <div class="form-group" data-operation="csv">
+                <div class="file-upload-wrapper">
+                    <label for="csvFile">Choose CSV File</label>
+                    <input type="file" id="csvFile" name="file" class="input-field" accept=".csv" required>
+                    <div class="file-preview" data-type="csv">
+                        <i class="fas fa-file-upload"></i>
+                        <span>No file selected</span>
+                    </div>
+                </div>
+                <label for="csvDatabase">Target Database</label>
+                <input type="text" id="csvDatabase" name="database" class="input-field" placeholder="csv_database" required>
+            </div>
+
+            <!-- JSON Upload Form -->
+            <div class="form-group" data-operation="json">
+                <div class="file-upload-wrapper">
+                    <label for="jsonFile">Choose JSON File</label>
+                    <input type="file" id="jsonFile" name="file" class="input-field" accept=".json" required>
+                    <div class="file-preview" data-type="json">
+                        <i class="fas fa-file-upload"></i>
+                        <span>No file selected</span>
+                    </div>
+                </div>
+                <label for="jsonDatabase">Target Database</label>
+                <input type="text" id="jsonDatabase" name="database" class="input-field" placeholder="json_database" required>
+            </div>
+
+            <div class="progress-bar">
+                <div class="progress-fill"></div>
+            </div>
+
+            <button type="submit" id="submitBtn">
+                <span class="btn-text">Process Request</span>
+                <div class="loading-spinner"></div>
+            </button>
+        </form>
+    </main>
+
     <footer class="footer">
-        © 2024 <a href="#">DataSpeak</a> - NLP-Driven Database System
+        © 2025 DataSpark | Database Integration Interface
     </footer>
 
     <script>
-        const dbForm = document.getElementById('dbForm');
-        const mongodbRadio = document.getElementById('mongodb');
-        const jsonRadio = document.getElementById('json');
-        const hostInput = document.getElementById('host');
-        const portInput = document.getElementById('port');
-        const databaseInput = document.getElementById('database');
-        const dbFileInput = document.getElementById('db_file');
-        const submitButton = document.getElementById('submitButton');
-        const mongodbError = document.getElementById('mongodbError');
-        const jsonError = document.getElementById('jsonError');
-    
-        function toggleInputs() {
-            const isMongoDB = mongodbRadio.checked;
-    
-            // Toggle input fields for MongoDB
-            hostInput.disabled = !isMongoDB;
-            portInput.disabled = !isMongoDB;
-            databaseInput.disabled = !isMongoDB;
-    
-            // Toggle file input for JSON
-            dbFileInput.disabled = isMongoDB;
-    
-            // Clear error messages and validate the form
-            mongodbError.style.display = 'none';
-            jsonError.style.display = 'none';
-            validateForm();
-        }
-    
-        function validateForm() {
-            let isValid = false;
-    
-            if (mongodbRadio.checked) {
-                isValid = hostInput.value.trim() && portInput.value.trim() && databaseInput.value.trim();
-                mongodbError.style.display = isValid ? 'none' : 'block';
-            } else if (jsonRadio.checked) {
-                isValid = dbFileInput.files.length > 0;
-                jsonError.style.display = isValid ? 'none' : 'block';
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('dbForm');
+            const operationGroups = document.querySelectorAll('[data-operation]');
+            const progressBar = document.querySelector('.progress-bar');
+            const progressFill = document.querySelector('.progress-fill');
+            const submitBtn = document.getElementById('submitBtn');
+            const loadingSpinner = submitBtn.querySelector('.loading-spinner');
+            const btnText = submitBtn.querySelector('.btn-text');
+            let currentXHR = null; // To track ongoing requests
+
+            // Initialize form view
+            function initializeForm() {
+                updateFormView();
+                document.querySelectorAll('input[type="file"]').forEach(input => {
+                    input.value = ''; // Clear file inputs on page load
+                });
+                document.querySelectorAll('.file-preview').forEach(preview => {
+                    preview.innerHTML = `<i class="fas fa-file-upload"></i><span>No file selected</span>`;
+                });
             }
-    
-            submitButton.disabled = !isValid;
-        }
-    
-        // Add event listeners
-        mongodbRadio.addEventListener('change', toggleInputs);
-        jsonRadio.addEventListener('change', toggleInputs);
-        hostInput.addEventListener('input', validateForm);
-        portInput.addEventListener('input', validateForm);
-        databaseInput.addEventListener('input', validateForm);
-        dbFileInput.addEventListener('change', validateForm);
-    
-        // Initial validation and input toggle
-        toggleInputs();
-        validateForm();
+
+            // Toggle operation visibility
+            function updateFormView() {
+                const selectedOp = document.querySelector('input[name="operation"]:checked').value;
+                
+                operationGroups.forEach(group => {
+                    const isActive = group.dataset.operation === selectedOp;
+                    group.style.display = isActive ? 'block' : 'none';
+                    group.querySelectorAll('input').forEach(input => {
+                        input.disabled = !isActive;
+                        input.required = isActive;
+                    });
+                });
+
+                document.querySelectorAll('.radio-card').forEach(card => {
+                    card.classList.toggle('selected', 
+                        card.querySelector('input').value === selectedOp
+                    );
+                });
+
+                validateForm();
+            }
+
+            // File input handling
+            function handleFileInput(e) {
+                const file = e.target.files[0];
+                const type = e.target.closest('[data-operation]').dataset.operation;
+                const preview = document.querySelector(`.file-preview[data-type="${type}"]`);
+
+                if (file) {
+                    preview.innerHTML = `
+                        <i class="fas fa-file"></i>
+                        <span>${file.name} (${(file.size/1024/1024).toFixed(2)} MB)</span>
+                    `;
+                } else {
+                    preview.innerHTML = `
+                        <i class="fas fa-file-upload"></i>
+                        <span>No file selected</span>
+                    `;
+                }
+                validateForm();
+            }
+
+            // Form validation
+            function validateForm() {
+                const currentOp = document.querySelector('input[name="operation"]:checked').value;
+                let isValid = true;
+
+                if (currentOp === 'connect') {
+                    isValid = form.querySelector('[data-operation="connect"] input').checkValidity();
+                } else {
+                    const fileInput = form.querySelector(`[data-operation="${currentOp}"] input[type="file"]`);
+                    const dbInput = form.querySelector(`[data-operation="${currentOp}"] input[name="database"]`);
+                    
+                    isValid = fileInput.files.length > 0 && 
+                             dbInput.value.trim() !== '' &&
+                             fileInput.files[0].size <= 100 * 1024 * 1024;
+                }
+
+                submitBtn.disabled = !isValid;
+                return isValid;
+            }
+
+            function handleSubmit(e) {
+                e.preventDefault();
+                if (!validateForm() || currentXHR) return;
+
+                const formData = new FormData(form);
+
+                // Update UI
+                btnText.textContent = 'Processing...';
+                loadingSpinner.style.display = 'block';
+                submitBtn.disabled = true;
+                progressBar.style.display = 'block';
+                progressFill.style.width = '0%';
+
+                currentXHR = new XMLHttpRequest();
+                currentXHR.open('POST', '/select_db', true);
+
+                // No need to manually set CSRF token here when using Flask-WTF
+
+                // Track upload progress
+                currentXHR.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progressFill.style.width = `${percent}%`;
+                    }
+                });
+
+                currentXHR.onreadystatechange = function() {
+                    if (currentXHR.readyState === 4) {
+                        handleResponse(currentXHR);
+                        currentXHR = null;
+                    }
+                };
+
+                currentXHR.send(formData);
+            }
+
+            function handleResponse(xhr) {
+                // Reset UI elements
+                btnText.textContent = 'Process Request';
+                loadingSpinner.style.display = 'none';
+                submitBtn.disabled = false;
+                progressBar.style.display = 'none';
+
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        showMessage('success', response.message || 'Operation completed successfully');
+                        if (response.redirect) {
+                            setTimeout(() => window.location.href = response.redirect, 1500);
+                        }
+                    } else {
+                        throw new Error(response.error || `Error: ${xhr.statusText}`);
+                    }
+                } catch (err) {
+                    showMessage('error', err.message || 'An unexpected error occurred');
+                }
+            }
+
+            // Show status message
+            function showMessage(type, message) {
+                const statusMessage = document.createElement('div');
+                statusMessage.className = `status-message ${type}`;
+                statusMessage.innerHTML = `
+                    <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
+                    ${message}
+                `;
+                document.body.appendChild(statusMessage);
+                statusMessage.style.display = 'flex';
+
+                setTimeout(() => statusMessage.remove(), 5000);
+            }
+
+            // Event listeners
+            document.querySelectorAll('input[name="operation"]').forEach(radio => {
+                radio.addEventListener('change', updateFormView);
+            });
+
+            document.querySelectorAll('input[type="file"]').forEach(input => {
+                input.addEventListener('change', handleFileInput);
+            });
+
+            form.addEventListener('submit', handleSubmit);
+            form.querySelectorAll('input').forEach(input => {
+                input.addEventListener('input', validateForm);
+            });
+
+            // Drag and drop functionality
+            document.querySelectorAll('.file-upload-wrapper').forEach(wrapper => {
+                wrapper.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    wrapper.classList.add('dragover');
+                });
+
+                wrapper.addEventListener('dragleave', () => {
+                    wrapper.classList.remove('dragover');
+                });
+
+                wrapper.addEventListener('drop', e => {
+                    e.preventDefault();
+                    wrapper.classList.remove('dragover');
+                    const files = e.dataTransfer.files;
+                    if (files.length) {
+                        const input = wrapper.querySelector('input[type="file"]');
+                        input.files = files;
+                        input.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+
+            // Initial setup
+            initializeForm();
+        });
     </script>
 </body>
 </html>
