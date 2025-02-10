@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Natural Language Query Interface | DataSpeak</title>
+    <title>Natural Language to MongoDB Query | DataSpeak</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -76,7 +77,6 @@
             font-size: 1rem;
             transition: all 0.3s ease;
             background-color: #f8fafc;
-            padding-right: 3.5rem;
             color: var(--text-primary);
         }
 
@@ -152,6 +152,33 @@
             background: #dcfce7;
             color: var(--success-color);
             border: 1px solid #bbf7d0;
+        }
+
+        .results-section {
+            margin-top: 2rem;
+        }
+
+        .terminal {
+            background: #1E1E1E;
+            border-radius: 0.75rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .terminal-header {
+            padding: 0.75rem 1rem;
+            background: #252526;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            color: #fff;
+        }
+
+        .terminal-content {
+            color: #d4d4d4;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
         }
 
         .results-table {
@@ -232,6 +259,7 @@
             font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s ease;
+            border: none;
         }
 
         .example-chip:hover {
@@ -286,40 +314,60 @@
             font-size: 0.75rem;
             pointer-events: none;
         }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
     </style>
 </head>
 <body>
-    <div class="container" role="main">
-        <h1>Natural Language to MONGODB Query</h1>
+    <div class="container" role="main" aria-busy="false">
+        <h1>Natural Language to MongoDB Query</h1>
         
         <div class="query-examples">
             <h3>Try these examples:</h3>
             <div class="examples-list">
-                <div class="example-chip" onclick="fillExample('Show users with age greater than 25')">Age > 25</div>
-                <div class="example-chip" onclick="fillExample('List orders from last month')">Recent Orders</div>
-                <div class="example-chip" onclick="fillExample('Top 5 customers by revenue')">Top Customers</div>
+                <button type="button" class="example-chip" data-example="Show users where age is greater than 25">
+                    Age > 25
+                </button>
+                <button type="button" class="example-chip" data-example="Find orders where the total price is between 100 and 500">
+                    Orders by Price
+                </button>
+                <button type="button" class="example-chip" data-example="List products where category is electronics">
+                    Electronics Products
+                </button>
             </div>
         </div>
 
         <form id="queryForm" class="input-group">
-            {{ form.csrf_token }}
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
             <div style="position: relative;">
+                <label for="nlpQuery" class="sr-only">Enter your data question</label>
                 <input 
                     type="text" 
                     id="nlpQuery" 
                     class="input-field"
                     placeholder="Ask your data question in plain English..."
-                    aria-label="Enter your natural language query"
+                    aria-describedby="inputHelp"
                     required
                 >
-                <span class="keyboard-shortcut">⌘⏎</span>
+                <span class="keyboard-shortcut" aria-hidden="true">⌘⏎</span>
             </div>
             <button 
                 type="submit" 
                 class="submit-btn"
                 aria-live="polite"
+                aria-label="Generate database query"
             >
-                <i class="fas fa-magic"></i>
+                <i class="fas fa-magic" aria-hidden="true"></i>
                 Generate Query
             </button>
         </form>
@@ -333,35 +381,73 @@
             aria-live="assertive"
         ></div>
 
-        <table class="results-table" id="resultsTable" aria-live="polite">
-            <thead>
-                <tr></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+        <div class="results-section">
+            <div class="terminal">
+                <div class="terminal-header">
+                    Generated Query
+                    <div class="btn-group">
+                        <button id="copyQuery" class="btn btn-secondary">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button id="executeQuery" class="btn btn-primary">
+                            <i class="fas fa-play"></i> Execute
+                        </button>
+                    </div>
+                </div>
+                <pre id="generatedQuery" class="terminal-content"></pre>
+            </div>
+            
+            <div class="view-controls">
+                <button class="btn btn-secondary view-toggle active" data-view="table">
+                    <i class="fas fa-table"></i> Table
+                </button>
+                <button class="btn btn-secondary view-toggle" data-view="json">
+                    <i class="fas fa-code"></i> JSON
+                </button>
+            </div>
+
+            <div id="resultsContainer">
+                <div id="tableView" class="result-view active">
+                    <table class="results-table" id="resultsTable">
+                        <thead></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="jsonView" class="result-view">
+                    <pre class="json-viewer" id="jsonResults"></pre>
+                </div>
+            </div>
+        </div>
 
         <div class="powered-by">
-            <i class="fas fa-shield-alt"></i>
+            <i class="fas fa-shield-alt" aria-hidden="true"></i>
             <span>Secure Processing • AI-Powered Insights</span>
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.js"></script>
     <script>
         (() => {
+            const container = document.querySelector('.container');
             const form = document.getElementById('queryForm');
             const input = document.getElementById('nlpQuery');
             const btn = form.querySelector('button');
             const messageContainer = document.getElementById('messageContainer');
             const resultsTable = document.getElementById('resultsTable');
             const loadingSpinner = document.getElementById('loadingSpinner');
-            
+            const queryDisplay = document.getElementById('generatedQuery');
+            const copyQueryBtn = document.getElementById('copyQuery');
+            const executeQueryBtn = document.getElementById('executeQuery');
+            let isProcessing = false;
+            let generatedMongoQuery = null;
+
             const showMessage = (message, type = 'error', duration = 5000) => {
-                const icon = type === 'error' ? '⛔' : '✅';
                 messageContainer.innerHTML = `
                     <i class="fas ${type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle'}"></i>
                     ${message}
                 `;
                 messageContainer.className = `message ${type}-message visible`;
+                messageContainer.setAttribute('aria-label', `${type} message: ${message}`);
                 
                 if (duration) {
                     setTimeout(() => {
@@ -371,29 +457,33 @@
             };
 
             const renderResults = (data) => {
-                if (!data.length) {
+                if (!data.results || !data.results.length) {
                     showMessage('No matching records found', 'success');
                     return;
                 }
 
-                const headers = Object.keys(data[0]);
-                const headerRow = resultsTable.querySelector('thead tr');
-                headerRow.innerHTML = headers
-                    .map(header => `<th>${header.replace(/_/g, ' ')}</th>`)
-                    .join('');
+                const headers = Object.keys(data.results[0]);
+                const headerRow = resultsTable.querySelector('thead tr') || document.createElement('tr');
+                headerRow.innerHTML = headers.map(header => `<th>${header.replace(/_/g, ' ')}</th>`).join('');
 
-                const body = resultsTable.querySelector('tbody');
-                body.innerHTML = data
-                    .map(item => `
-                        <tr>
-                            ${headers.map(header => `
-                                <td>${formatCellContent(item[header])}</td>
-                            `).join('')}
-                        </tr>
-                    `)
-                    .join('');
+                const body = resultsTable.querySelector('tbody') || document.createElement('tbody');
+                body.innerHTML = data.results.map(item => `
+                    <tr>
+                        ${headers.map(header => `<td>${formatCellContent(item[header])}</td>`).join('')}
+                    </tr>
+                `).join('');
 
+                resultsTable.innerHTML = '';
+                resultsTable.appendChild(headerRow);
+                resultsTable.appendChild(body);
                 resultsTable.classList.add('visible');
+
+                // Display the generated MongoDB query
+                if (data.mongo_query) {
+                    queryDisplay.textContent = JSON.stringify(data.mongo_query, null, 2);
+                } else {
+                    queryDisplay.textContent = "No query was generated.";
+                }
             };
 
             const formatCellContent = (content) => {
@@ -402,86 +492,115 @@
                 return content;
             };
 
-            input.addEventListener('input', debounce((e) => {
-                if (input.value.trim().length >= 3) {
-                    // Add real-time validation/feedback
-                }
-            }, 300));
-
-            form.addEventListener('submit', async (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
+                if (isProcessing) return;
+
                 const query = input.value.trim();
                 if (!validateQuery(query)) return;
 
+                isProcessing = true;
                 toggleLoading(true);
                 clearResults();
 
                 try {
-                    const response = await fetch('/nlp_query', {
+                    const response = await fetch('/query', { 
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRFToken': form.querySelector('input[name="csrf_token"]').value
+                            'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value
                         },
-                        body: JSON.stringify({ query }),
+                        body: JSON.stringify({ query })
                     });
 
-                    const data = await handleResponse(response);
-                    if (data.results) renderResults(data.results);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+
+                    // Store generated query
+                    generatedMongoQuery = data.mongo_query;
                     
+                    // Display the generated query
+                    queryDisplay.textContent = JSON.stringify(data.mongo_query, null, 2);
+                    
+                    // Enable execute button
+                    executeQueryBtn.disabled = false;
                 } catch (error) {
-                    showMessage(error.message, 'error');
+                    showMessage(error.message || 'Failed to process your request', 'error');
                 } finally {
+                    isProcessing = false;
                     toggleLoading(false);
                 }
-            });
+            };
 
-            // Utility functions
-            function validateQuery(query) {
+            const validateQuery = (query) => {
                 if (query.length < 5) {
                     showMessage('Query must be at least 5 characters', 'error');
                     return false;
                 }
                 return true;
-            }
-
-            function toggleLoading(isLoading) {
-                btn.disabled = isLoading;
-                loadingSpinner.style.display = isLoading ? 'block' : 'none';
-                document.body.style.cursor = isLoading ? 'wait' : 'default';
-            }
-
-            function clearResults() {
-                resultsTable.classList.remove('visible');
-                resultsTable.querySelector('thead tr').innerHTML = '';
-                resultsTable.querySelector('tbody').innerHTML = '';
-            }
-
-            async function handleResponse(response) {
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Request failed');
-                }
-                return response.json();
-            }
-
-            function debounce(fn, delay) {
-                let timeout;
-                return (...args) => {
-                    clearTimeout(timeout);
-                    timeout = setTimeout(() => fn.apply(this, args), delay);
-                };
-            }
-
-            window.fillExample = (text) => {
-                input.value = text;
-                input.focus();
             };
 
-            // Keyboard shortcut
+            const toggleLoading = (isLoading) => {
+                btn.disabled = isLoading;
+                loadingSpinner.style.display = isLoading ? 'block' : 'none';
+                container.setAttribute('aria-busy', isLoading);
+            };
+
+            const clearResults = () => {
+                resultsTable.classList.remove('visible');
+                resultsTable.innerHTML = '';
+                queryDisplay.textContent = '';
+            };
+
+            form.addEventListener('submit', handleSubmit);
+            
             document.addEventListener('keydown', (e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    e.preventDefault();
                     form.requestSubmit();
+                }
+            });
+
+            document.querySelector('.examples-list').addEventListener('click', (e) => {
+                if (e.target.matches('.example-chip')) {
+                    input.value = e.target.dataset.example;
+                    input.focus();
+                }
+            });
+
+            copyQueryBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(queryDisplay.textContent)
+                    .then(() => showMessage('Query copied to clipboard', 'success', 3000))
+                    .catch((err) => showMessage('Error copying query: ' + err, 'error', 5000));
+            });
+
+            // Handle query execution
+            executeQueryBtn.addEventListener('click', async () => {
+                if (!generatedMongoQuery) return;
+                
+                try {
+                    const response = await fetch('/execute_query', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value
+                        },
+                        body: JSON.stringify({ query: generatedMongoQuery })
+                    });
+
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+
+                    // Update results views
+                    updateTableView(data.results);
+                    updateJsonView(data.results);
+                    
+                } catch (error) {
+                    showMessage(error.message, 'error');
                 }
             });
         })();

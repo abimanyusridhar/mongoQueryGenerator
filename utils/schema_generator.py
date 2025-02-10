@@ -117,15 +117,11 @@ def analyze_field(collection, field: str, sample_size: int = 1000) -> Dict[str, 
         }
 
 def generate_schema(databases: Optional[List[str]] = None) -> Dict[str, Dict[Any, Any]]:
-    """
-    Generate schema from MongoDB databases and collections with performance optimizations.
-
-    :param databases: Optional list of database names to process.
-    :return: Dictionary containing schema information for each database and collection.
-    """
+    """Generate schema from MongoDB databases and collections."""
     schema = {}
-    with get_mongo_client('localhost', 27017) as client:  # Hardcoded for example, should use app.config in Flask context
-        db_names = databases or [db for db in client.list_database_names() if db not in ["admin", "config", "local"]]
+    with get_mongo_client('localhost', 27017) as client:
+        db_names = databases or [db for db in client.list_database_names() 
+                               if db not in ["admin", "config", "local"]]
 
         for db_name in db_names:
             db = client[db_name]
@@ -134,13 +130,29 @@ def generate_schema(databases: Optional[List[str]] = None) -> Dict[str, Dict[Any
             for collection_name in db.list_collection_names():
                 collection = db[collection_name]
                 try:
-                    sample_data = next(collection.aggregate([{"$sample": {"size": 1}}]), {})
-                    fields = []
-                    field_details = {}
+                    # Ensure we get a document with _id field
+                    sample_data = next(collection.aggregate([
+                        {"$project": {"_id": 1, "document": "$$ROOT"}},
+                        {"$sample": {"size": 1}}
+                    ]), {})
+                    
+                    if not sample_data:
+                        continue
+
+                    fields = ['_id']  # Always include _id field
+                    field_details = {
+                        '_id': {
+                            'type': 'ObjectId',
+                            'required': True,
+                            'nullable': False
+                        }
+                    }
 
                     def _process_nested(obj, prefix=''):
                         if isinstance(obj, dict):
                             for key, value in obj.items():
+                                if key == '_id':
+                                    continue  # Skip _id as it's already processed
                                 full_key = f"{prefix}.{key}" if prefix else key
                                 fields.append(full_key)
                                 if collection.count_documents({full_key: {"$exists": True}}, limit=2) > 1:
@@ -150,8 +162,9 @@ def generate_schema(databases: Optional[List[str]] = None) -> Dict[str, Dict[Any
                             if isinstance(obj[0], (dict, list)):
                                 _process_nested(obj[0], prefix)
 
-                    _process_nested(sample_data)
+                    _process_nested(sample_data.get('document', {}))
 
+                    # Get collection statistics
                     stats = next(collection.aggregate([
                         {"$group": {
                             "_id": None,
@@ -160,26 +173,28 @@ def generate_schema(databases: Optional[List[str]] = None) -> Dict[str, Dict[Any
                         }}
                     ]), {})
 
-                    total_documents = stats.get("total_documents", 0)
-                    avg_size = round(stats.get("avg_size", 0) / 1024, 2)
-
                     db_schema[collection_name] = {
                         "fields": fields,
                         "field_details": field_details,
-                        "sample_data": [sample_data],
-                        "total_documents": total_documents,
-                        "avg_document_size": avg_size,
-                        "collection_size": round(db.command({"collStats": collection_name}).get("size", 0) / (1024 * 1024), 2),
-                        "indexes": [{"name": name, "fields": list(index_info["key"].items())} for name, index_info in collection.index_information().items() if name != "_id_"]
+                        "sample_data": [sample_data.get('document', {})],
+                        "total_documents": stats.get("total_documents", 0),
+                        "avg_document_size": round(stats.get("avg_size", 0) / 1024, 2),
+                        "collection_size": round(
+                            db.command({"collStats": collection_name}).get("size", 0) / (1024 * 1024), 
+                            2
+                        ),
+                        "indexes": [
+                            {"name": name, "fields": list(index_info["key"].items())} 
+                            for name, index_info in collection.index_information().items()
+                        ]
                     }
-                except errors.OperationFailure as e:
-                    logger.error(f"Operation failure in collection '{collection_name}' of database '{db_name}': {e}")
+
                 except Exception as e:
-                    logger.error(f"Unexpected error processing collection '{collection_name}' in database '{db_name}': {e}")
+                    logger.error(f"Error processing collection '{collection_name}': {str(e)}")
+                    continue
 
             schema[db_name] = db_schema
 
-    logger.info("Schema generation successful.")
     return schema
 
 def extract_relationships(schema: Dict[str, Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:

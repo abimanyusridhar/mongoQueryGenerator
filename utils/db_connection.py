@@ -11,6 +11,7 @@ from tqdm import tqdm
 import ijson
 from tenacity import retry, stop_after_attempt, wait_exponential
 import bson
+from bson import ObjectId
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -128,43 +129,41 @@ def _process_json_streaming(json_path: str, db_name: str, db_details: Dict[str, 
         with open(json_path, 'r', encoding='utf-8') as f:
             first_char = f.read(1)
             f.seek(0)
-
+            
             if first_char == '[':
-                collection_name = sanitize_collection_name(os.path.splitext(os.path.basename(json_path))[0])
-                items = ijson.items(f, 'item')
+                # Handle array of documents
+                documents = ijson.items(f, 'item')
                 return _process_generator(
-                    data_generator=items,
+                    data_generator=(ensure_document_id(doc) for doc in documents),
                     db_name=db_name,
-                    collection_name=collection_name,
+                    collection_name=sanitize_collection_name(os.path.splitext(os.path.basename(json_path))[0]),
                     db_details=db_details
                 )
             elif first_char == '{':
-                return _process_json_collections(f, db_name, db_details)
+                # Handle collection-based structure
+                collections = ijson.kvitems(f, '')
+                success = True
+                messages = []
+                
+                for collection_name, items in collections:
+                    valid_name = sanitize_collection_name(collection_name)
+                    # Ensure each document has _id
+                    processed_items = (ensure_document_id(item) for item in items)
+                    s, msg = _process_generator(
+                        data_generator=processed_items,
+                        db_name=db_name,
+                        collection_name=valid_name,
+                        db_details=db_details
+                    )
+                    messages.append(f"{valid_name}: {msg}")
+                    success &= s
+                return success, " | ".join(messages)
             else:
                 return False, "Unsupported JSON structure"
 
     except Exception as e:
         logger.error(f"JSON processing failed: {str(e)}", exc_info=True)
         return False, f"JSON error: {str(e)}"
-
-def _process_json_collections(file_handler, db_name: str, db_details: Dict[str, Any]) -> Tuple[bool, str]:
-    success = True
-    messages = []
-    try:
-        collections = ijson.kvitems(file_handler, '')
-        for collection_name, items in collections:
-            valid_name = sanitize_collection_name(collection_name)
-            s, msg = _process_generator(
-                data_generator=items,
-                db_name=db_name,
-                collection_name=valid_name,
-                db_details=db_details
-            )
-            messages.append(f"{valid_name}: {msg}")
-            success &= s
-        return success, " | ".join(messages)
-    except Exception as e:
-        return False, f"Collection processing error: {str(e)}"
 
 def _process_generator(data_generator: Generator[Dict, None, None], db_name: str,
                       collection_name: str, db_details: Dict[str, Any],
@@ -221,9 +220,12 @@ def _process_generator(data_generator: Generator[Dict, None, None], db_name: str
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=1, max=10))
 def _insert_batch_with_retry(collection, batch: List[Dict]) -> int:
+    """Insert batch of documents with retry logic."""
     try:
+        # Ensure each document in batch has _id
+        processed_batch = [ensure_document_id(doc) for doc in batch]
         result = collection.bulk_write(
-            [InsertOne(doc) for doc in batch],
+            [InsertOne(doc) for doc in processed_batch],
             ordered=False,
             bypass_document_validation=True
         )
@@ -244,3 +246,11 @@ def get_connection_details() -> Dict[str, Any]:
     if not all(details.values()):
         raise ValueError("Required environment variables MONGO_HOST or MONGO_PORT are missing.")
     return details
+
+def ensure_document_id(document: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensure document has _id field."""
+    if not isinstance(document, dict):
+        raise ValueError("Document must be a dictionary")
+    if '_id' not in document:
+        document['_id'] = ObjectId()
+    return document

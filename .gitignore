@@ -1,22 +1,118 @@
-# Ignore virtual environment folder
-venv
-uploaded_databases
+# Virtual Environment
+venv/
+env/
+.env/
+.venv/
+ENV/
 
-# Ignore Python bytecode files
+# Database
+uploaded_databases/
+flask_session/
+*.db
+*.sqlite
+*.sqlite3
+
+# Instance folder
+instance/
+
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Ignore sensitive information
+# Environment Variables
 .env
 .env.*
 *.env
+.flaskenv
 
-# Ignore IDE/editor settings
+# Logs
+*.log
+app.log
+logs/
+log/
+
+# IDE/Editor
 .idea/
 .vscode/
-.DS_Store  # macOS-specific system files
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
 
-# Ignore dependencies folder for Python (if you're using pipenv or poetry)
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.coverage.*
+coverage.xml
+*.cover
+
+# Documentation
+docs/_build/
+site/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Package Management
 Pipfile.lock
 poetry.lock
+requirements.txt.lock
+
+# MongoDB specific
+mongodump/
+*.mongodb
+*.bson
+*.mongodump
+
+# Temporary files
+tmp/
+temp/
+.temp/
+*.tmp
+
+# Local development configuration
+config.local.py
+local_settings.py
+
+# Cache
+.cache/
+.webpack_cache/
+.eslintcache
+.mypy_cache/
+
+# Generated files
+generated/
+output/
+exports/

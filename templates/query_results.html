@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Query Results | DataSpeak</title>
+    <title>Interactive MongoDB Query | DataSpeak</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         :root {
             --primary: #2A9D8F;
@@ -91,12 +89,14 @@
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #333;
+            color: white;
         }
 
-        .terminal-title {
-            font-weight: 500;
-            color: #9CDCFE;
-            font-size: 0.9rem;
+        .terminal-content {
+            color: #d4d4d4;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            min-height: 150px;
         }
 
         .btn-group {
@@ -208,6 +208,7 @@
             border-radius: 8px;
             max-height: 500px;
             overflow: auto;
+            color: #d4d4d4;
         }
 
         .back-btn {
@@ -268,35 +269,39 @@
 </head>
 <body>
     <div class="container">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <header class="header">
-            <h1>Query Results</h1>
+            <h1>Interactive MongoDB Query</h1>
             <div class="stats">
                 <div class="stat-item">
                     <span class="stat-label">Documents:</span>
                     <span class="stat-value" id="docCount">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Execution Time:</span>
-                    <span class="stat-value" id="execTime">0ms</span>
                 </div>
             </div>
         </header>
 
         <section class="section">
             <div class="section-header">
-                <h2 class="section-title">Generated Query</h2>
+                <h2 class="section-title">MongoDB Query Terminal</h2>
                 <div class="btn-group">
                     <button class="btn btn-secondary" id="copyQuery">
                         <i class="fas fa-copy"></i>
                         Copy
                     </button>
+                    <button class="btn btn-primary" id="executeQuery">
+                        <i class="fas fa-play"></i>
+                        Execute
+                    </button>
                 </div>
             </div>
             <div class="terminal">
                 <div class="terminal-header">
-                    <span class="terminal-title">MongoDB Query</span>
+                    MongoDB Query
+                    <button id="pasteQuery" class="btn btn-secondary" title="Paste Query">
+                        <i class="fas fa-paste"></i>
+                    </button>
                 </div>
-                <div id="queryEditor"></div>
+                <textarea id="queryInput" class="terminal-content" rows="5" placeholder="Enter or paste your MongoDB query here..."></textarea>
             </div>
         </section>
 
@@ -310,14 +315,6 @@
                     </button>
                     <button class="btn btn-secondary view-toggle" data-view="json">
                         <i class="fas fa-code"></i>
-                        JSON
-                    </button>
-                    <button class="btn btn-primary" id="exportCsv">
-                        <i class="fas fa-file-csv"></i>
-                        CSV
-                    </button>
-                    <button class="btn btn-primary" id="exportJson">
-                        <i class="fas fa-file-code"></i>
                         JSON
                     </button>
                 </div>
@@ -343,64 +340,77 @@
         Back to Query Builder
     </a>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.63.0/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize CodeMirror with dark theme
-            const queryEditor = CodeMirror(document.getElementById('queryEditor'), {
-                mode: 'javascript',
-                theme: 'material',
-                lineNumbers: true,
-                readOnly: true,
-                value: JSON.parse(`{{ mongo_query | tojson | safe }}` || '{}')
+            const queryInput = document.getElementById('queryInput');
+            const copyQueryBtn = document.getElementById('copyQuery');
+            const executeQueryBtn = document.getElementById('executeQuery');
+            const pasteQueryBtn = document.getElementById('pasteQuery');
+
+            const resultTable = document.getElementById('resultTable');
+            const jsonContent = document.getElementById('jsonContent');
+            const toast = document.getElementById('toast');
+            const docCount = document.getElementById('docCount');
+
+            // Initialize with any previously generated query if available
+            const initialQuery = JSON.stringify("{{ mongo_query | tojson | safe }}" || {});
+            queryInput.value = initialQuery;
+
+            pasteQueryBtn.addEventListener('click', async () => {
+                try {
+                    const text = await navigator.clipboard.readText();
+                    queryInput.value = text;
+                    showToast("Query pasted from clipboard");
+                } catch (err) {
+                    showToast("Failed to paste from clipboard", 'error');
+                }
             });
 
-            // Initialize results
-            let results = JSON.parse(`{{ results | tojson | safe }}` || '[]');
-            let currentView = 'table';
-
-            // Initialize UI
-            updateStats(results.length, 0);
-            renderTableView(results);
-            renderJsonView(results);
-
-            // View toggle
-            document.querySelectorAll('.view-toggle').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    currentView = btn.dataset.view;
-                    document.querySelectorAll('.result-view').forEach(view => {
-                        view.classList.remove('active');
-                    });
-                    document.getElementById(`${currentView}View`).classList.add('active');
-                    document.querySelectorAll('.view-toggle').forEach(b => {
-                        b.classList.toggle('active', b === btn);
-                    });
-                });
-            });
-
-            // Export handlers
-            document.getElementById('exportCsv').addEventListener('click', () => exportData('csv'));
-            document.getElementById('exportJson').addEventListener('click', () => exportData('json'));
-
-            // Copy query
-            document.getElementById('copyQuery').addEventListener('click', () => {
-                navigator.clipboard.writeText(queryEditor.getValue())
+            copyQueryBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(queryInput.value)
                     .then(() => showToast('Query copied to clipboard'))
                     .catch(() => showToast('Failed to copy', 'error'));
             });
 
-            function renderTableView(data) {
-                const table = document.getElementById('resultTable');
-                table.innerHTML = '';
+            executeQueryBtn.addEventListener('click', async () => {
+                try {
+                    const query = JSON.parse(queryInput.value);
+                    const response = await fetch('/execute_query', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-Token': document.querySelector('input[name="csrf_token"]').value
+                        },
+                        body: JSON.stringify({ query })
+                    });
 
-                if (data.length === 0) {
-                    table.innerHTML = '<tr><td colspan="100%" class="empty">No results found</td></tr>';
+                    if (!response.ok) throw new Error('Failed to execute query');
+
+                    const results = await response.json();
+                    updateStats(results.total);
+                    renderTableView(results.results);
+                    renderJsonView(results.results);
+                } catch (error) {
+                    showToast(`Error: ${error.message}`, 'error');
+                }
+            });
+
+            document.querySelectorAll('.view-toggle').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const view = btn.dataset.view;
+                    document.querySelectorAll('.result-view').forEach(view => view.classList.remove('active'));
+                    document.getElementById(`${view}View`).classList.add('active');
+                    document.querySelectorAll('.view-toggle').forEach(b => b.classList.toggle('active', b === btn));
+                });
+            });
+
+            function renderTableView(data) {
+                resultTable.innerHTML = '';
+                if (!data.length) {
+                    resultTable.innerHTML = '<tr><td colspan="100%" class="empty">No results found</td></tr>';
                     return;
                 }
 
-                // Create header
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
                 Object.keys(data[0]).forEach(key => {
@@ -409,9 +419,8 @@
                     headerRow.appendChild(th);
                 });
                 thead.appendChild(headerRow);
-                table.appendChild(thead);
+                resultTable.appendChild(thead);
 
-                // Create body
                 const tbody = document.createElement('tbody');
                 data.forEach(item => {
                     const tr = document.createElement('tr');
@@ -424,59 +433,21 @@
                     });
                     tbody.appendChild(tr);
                 });
-                table.appendChild(tbody);
+                resultTable.appendChild(tbody);
             }
 
             function renderJsonView(data) {
-                const pre = document.getElementById('jsonContent');
-                pre.textContent = JSON.stringify(data, null, 2);
-                Prism.highlightElement(pre);
+                jsonContent.textContent = JSON.stringify(data, null, 2);
             }
 
-            function updateStats(count, time) {
-                document.getElementById('docCount').textContent = count;
-                document.getElementById('execTime').textContent = `${time}ms`;
-            }
-
-            function exportData(format) {
-                if (!results.length) return showToast('No data to export', 'warning');
-
-                let data, mimeType;
-                if (format === 'csv') {
-                    data = convertToCSV(results);
-                    mimeType = 'text/csv';
-                } else {
-                    data = JSON.stringify(results, null, 2);
-                    mimeType = 'application/json';
-                }
-
-                const blob = new Blob([data], { type: mimeType });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `results.${format}`;
-                a.click();
-                URL.revokeObjectURL(url);
-                showToast(`Exported as ${format.toUpperCase()}`);
-            }
-
-            function convertToCSV(data) {
-                const headers = Object.keys(data[0]);
-                const rows = data.map(row => 
-                    headers.map(field => 
-                        JSON.stringify(row[field], (_, val) => val ?? '')
-                    ).join(',')
-                );
-                return [headers.join(','), ...rows].join('\n');
+            function updateStats(count) {
+                docCount.textContent = count;
             }
 
             function showToast(message, type = 'success') {
-                const toast = document.getElementById('toast');
                 toast.textContent = message;
                 toast.style.display = 'block';
-                const errorColor = getComputedStyle(document.documentElement).getPropertyValue('--error');
-                const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary');
-                toast.style.background = type === 'error' ? errorColor : primaryColor;
+                toast.style.background = type === 'error' ? getComputedStyle(document.documentElement).getPropertyValue('--error') : getComputedStyle(document.documentElement).getPropertyValue('--secondary');
                 
                 setTimeout(() => {
                     toast.style.display = 'none';
